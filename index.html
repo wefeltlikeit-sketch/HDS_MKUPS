@@ -1,8 +1,243 @@
-OMW Triage — Project Index
+<!DOCTYPE html><!-- simple version -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OMW Triage — Project Index</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #21262d;
+      --accent: #2ea87e;
+      --accent-dim: rgba(46, 168, 126, 0.12);
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --tag-html: #1f6feb;
+      --tag-docx: #388bfd;
+      --tag-pptx: #d29922;
+      --tag-md: #56d364;
+    }
 
-BMD_Scoring_Example.html — Interactive BMD scoring example
-OMW_Triage_Demo.html — Live triage decision tool demo
-HEDIS_OMW_Scoring_Model.docx — Scoring model specification
-OMW_Triage_Deck.pptx — Stakeholder presentation deck
-README.md — Project overview
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      padding: 3rem 1.5rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      border-left: 3px solid var(--accent);
+      padding-left: 1.25rem;
+      animation: fadeIn 0.5s ease both;
+    }
+
+    .project-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .file-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    .file-card:nth-child(1) { animation-delay: 0.05s; }
+    .file-card:nth-child(2) { animation-delay: 0.10s; }
+    .file-card:nth-child(3) { animation-delay: 0.15s; }
+    .file-card:nth-child(4) { animation-delay: 0.20s; }
+    .file-card:nth-child(5) { animation-delay: 0.25s; }
+
+    .file-card:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      transform: translateX(3px);
+    }
+
+    .file-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      width: 1.5rem;
+      text-align: center;
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .file-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .tag-html { background: rgba(31,111,235,0.15); color: #58a6ff; border: 1px solid rgba(88,166,255,0.2); }
+    .tag-docx { background: rgba(56,139,253,0.1); color: #79c0ff; border: 1px solid rgba(121,192,255,0.2); }
+    .tag-pptx { background: rgba(210,153,34,0.12); color: #e3b341; border: 1px solid rgba(227,179,65,0.2); }
+    .tag-md   { background: rgba(86,211,100,0.1); color: #56d364; border: 1px solid rgba(86,211,100,0.2); }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      transition: color 0.2s, transform 0.15s;
+    }
+
+    .file-card:hover .arrow {
+      color: var(--accent);
+      transform: translateX(2px);
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      animation: fadeIn 0.5s ease 0.4s both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="project-label">HEDIS · OMW Triage</div>
+      <h1>Project Index</h1>
+      <p class="subtitle">Osteoporosis Management in Women (OMW) — scoring model, triage tools, and reference docs</p>
+    </header>
+
+    <div class="file-list">
+
+      <a class="file-card" href="BMD_Scoring_Example.html">
+        <span class="file-icon">📊</span>
+        <div class="file-info">
+          <div class="file-name">BMD_Scoring_Example.html</div>
+          <div class="file-desc">Interactive bone mineral density scoring walkthrough</div>
+        </div>
+        <span class="file-tag tag-html">HTML</span>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="file-card" href="OMW_Triage_Demo.html">
+        <span class="file-icon">🖥️</span>
+        <div class="file-info">
+          <div class="file-name">OMW_Triage_Demo.html</div>
+          <div class="file-desc">Live demo of the OMW triage decision tool</div>
+        </div>
+        <span class="file-tag tag-html">HTML</span>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="file-card" href="HEDIS_OMW_Scoring_Model.docx">
+        <span class="file-icon">📄</span>
+        <div class="file-info">
+          <div class="file-name">HEDIS_OMW_Scoring_Model.docx</div>
+          <div class="file-desc">Scoring model specification and logic documentation</div>
+        </div>
+        <span class="file-tag tag-docx">DOCX</span>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="file-card" href="OMW_Triage_Deck.pptx">
+        <span class="file-icon">📑</span>
+        <div class="file-info">
+          <div class="file-name">OMW_Triage_Deck.pptx</div>
+          <div class="file-desc">Presentation deck for stakeholder review</div>
+        </div>
+        <span class="file-tag tag-pptx">PPTX</span>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="file-card" href="README.md">
+        <span class="file-icon">📋</span>
+        <div class="file-info">
+          <div class="file-name">README.md</div>
+          <div class="file-desc">Project overview and usage notes</div>
+        </div>
+        <span class="file-tag tag-md">MD</span>
+        <span class="arrow">→</span>
+      </a>
+
+    </div>
+
+    <footer>
+      generated index · OMW Triage project · last updated <span id="date"></span>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('date').textContent = new Date().toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  </script>
+</body>
+</html>
