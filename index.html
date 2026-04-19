@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMW Intelligence Layer — Pre-Denominator Candidate Strategy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,600;0,800;1,300&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --teal:       #00897B;
+    --teal-light: #4DB6AC;
+    --teal-dark:  #00695C;
+    --teal-dim:   rgba(0,137,123,0.15);
+    --green:      #43A047;
+    --green-light:#81C784;
+    --green-dim:  rgba(67,160,71,0.15);
+    --maroon:     #880E4F;
+    --maroon-light:#F48FB1;
+    --maroon-dim: rgba(136,14,79,0.15);
+    --amber:      #F57F17;
+    --amber-light:#FFD54F;
+    --amber-dim:  rgba(245,127,23,0.15);
+    --white:      #F4F7F5;
+    --off-white:  #E8F0EC;
+    --bg:         #0D1F1A;
+    --bg2:        #112218;
+    --bg3:        #162B22;
+    --border:     rgba(0,137,123,0.25);
+    --text:       #D4E8E0;
+    --text-dim:   #7BAAA0;
+    --mono:       'DM Mono', monospace;
+    --sans:       'DM Sans', sans-serif;
+    --display:    'Fraunces', serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,31,26,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .logo {
+    font-family: var(--display);
+    font-weight: 600; font-size: 1rem;
+    color: var(--teal-light);
+    letter-spacing: 0.02em;
+  }
+  .logo span { color: var(--text-dim); font-weight: 300; }
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    background: var(--maroon-dim);
+    color: var(--maroon-light);
+    border: 1px solid var(--maroon);
+    border-radius: 4px;
+    padding: 2px 8px;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── TABS ── */
+  .tab-bar {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex-shrink: 0;
+    background: none; border: none;
+    color: var(--text-dim);
+    font-family: var(--sans); font-size: 0.8rem; font-weight: 500;
+    padding: 0.9rem 1.4rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+  .tab-btn:hover { color: var(--teal-light); }
+  .tab-btn.active {
+    color: var(--teal-light);
+    border-bottom-color: var(--teal);
+    background: var(--teal-dim);
+  }
+
+  /* ── PANELS ── */
+  .panel { display: none; padding: 2.5rem 2.5rem 4rem; max-width: 1200px; margin: 0 auto; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+  /* ── TYPOGRAPHY ── */
+  .panel-title {
+    font-family: var(--display);
+    font-size: 2.2rem; font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 0.4rem;
+    color: var(--white);
+  }
+  .panel-title em { font-style: italic; color: var(--teal-light); }
+  .panel-sub {
+    font-size: 0.95rem; color: var(--text-dim);
+    margin-bottom: 2.5rem;
+    max-width: 680px;
+  }
+  h3 {
+    font-family: var(--display); font-size: 1.25rem; font-weight: 600;
+    color: var(--white); margin-bottom: 0.75rem;
+  }
+  h4 {
+    font-family: var(--mono); font-size: 0.78rem;
+    color: var(--teal-light); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 0.5rem;
+  }
+  p { color: var(--text); margin-bottom: 0.9rem; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── GRID HELPERS ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+  @media(max-width:768px) { .grid-2,.grid-3 { grid-template-columns:1fr; } }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .card.accent-teal  { border-color: var(--teal);   background: linear-gradient(135deg, var(--bg3), rgba(0,137,123,0.08)); }
+  .card.accent-amber { border-color: var(--amber);  background: linear-gradient(135deg, var(--bg3), rgba(245,127,23,0.08)); }
+  .card.accent-maroon{ border-color: var(--maroon); background: linear-gradient(135deg, var(--bg3), rgba(136,14,79,0.08)); }
+  .card.accent-green { border-color: var(--green);  background: linear-gradient(135deg, var(--bg3), rgba(67,160,71,0.08)); }
+
+  /* ── TAGS / PILLS ── */
+  .tag {
+    display: inline-block;
+    font-family: var(--mono); font-size: 0.68rem;
+    padding: 2px 7px; border-radius: 4px;
+    letter-spacing: 0.06em; margin: 2px 2px 2px 0;
+  }
+  .tag-claims  { background: rgba(67,160,71,0.18);  color: #81C784; border:1px solid rgba(67,160,71,0.4); }
+  .tag-lab     { background: rgba(0,137,123,0.18);  color: #4DB6AC; border:1px solid rgba(0,137,123,0.4); }
+  .tag-rx      { background: rgba(245,127,23,0.18); color: #FFB74D; border:1px solid rgba(245,127,23,0.4); }
+  .tag-fhir    { background: rgba(136,14,79,0.18);  color: #F48FB1; border:1px solid rgba(136,14,79,0.4); }
+  .tag-epic    { background: rgba(33,150,243,0.18); color: #90CAF9; border:1px solid rgba(33,150,243,0.4); }
+  .tag-adt     { background: rgba(255,213,79,0.15); color: #FFD54F; border:1px solid rgba(255,213,79,0.4); }
+  .tag-auth    { background: rgba(171,71,188,0.18); color: #CE93D8; border:1px solid rgba(171,71,188,0.4); }
+
+  /* ── BEFORE/AFTER ── */
+  .compare-wrap { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; margin-bottom: 2rem; }
+  .compare-arrow { font-size: 2rem; color: var(--teal); text-align: center; }
+  .compare-box {
+    border-radius: 12px; padding: 1.75rem;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .compare-box.before { background: rgba(136,14,79,0.12); border: 1px solid rgba(136,14,79,0.35); }
+  .compare-box.after  { background: rgba(0,137,123,0.12); border: 1px solid rgba(0,137,123,0.5); }
+  .compare-label {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 0.25rem;
+  }
+  .compare-box.before .compare-label { color: var(--maroon-light); }
+  .compare-box.after  .compare-label { color: var(--teal-light); }
+  .compare-box h3 { font-size: 1.1rem; margin-bottom: 0; }
+  .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+  .bullet-list li { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.88rem; color: var(--text-dim); }
+  .bullet-list li::before { content: '—'; color: var(--teal); flex-shrink: 0; margin-top: 0.05rem; }
+
+  /* ── STAT BLOCKS ── */
+  .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .stat {
+    flex: 1; min-width: 160px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: var(--display); font-size: 2.2rem; font-weight: 800;
+    line-height: 1; margin-bottom: 0.3rem;
+  }
+  .stat-lbl { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.08em; }
+  .c-maroon { color: var(--maroon-light); }
+  .c-teal   { color: var(--teal-light); }
+  .c-amber  { color: var(--amber-light); }
+  .c-green  { color: var(--green-light); }
+
+  /* ── QUADRANT ── */
+  .quadrant-wrap {
+    position: relative;
+    width: 100%; max-width: 560px; aspect-ratio: 1;
+    margin: 0 auto 1.5rem;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg3); overflow: hidden;
+  }
+  .q-axis-h {
+    position: absolute; top: 50%; left: 0; right: 0; height: 1px;
+    background: var(--border); transform: translateY(-50%);
+  }
+  .q-axis-v {
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+    background: var(--border); transform: translateX(-50%);
+  }
+  .q-label {
+    position: absolute; font-family: var(--mono); font-size: 0.68rem;
+    letter-spacing: 0.08em; color: var(--text-dim); pointer-events: none;
+  }
+  .q-quad {
+    position: absolute; width: 50%; height: 50%;
+    display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+    padding: 0.75rem; pointer-events: none;
+  }
+  .q-quad-label { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.07em; }
+  .q-tl { top:0; left:0; }
+  .q-tr { top:0; right:0; align-items: flex-end; }
+  .q-bl { bottom:0; left:0; justify-content: flex-start; }
+  .q-br { bottom:0; right:0; align-items: flex-end; justify-content: flex-start; }
+  .q-tr { background: rgba(136,14,79,0.1); }
+  .member-dot {
+    position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    transform: translate(-50%,-50%);
+    cursor: pointer; transition: transform 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0;
+  }
+  .member-dot:hover { transform: translate(-50%,-50%) scale(1.6); z-index: 10; }
+  .member-dot.dual-high { border: 2px solid var(--maroon-light); box-shadow: 0 0 12px var(--maroon); }
+  .member-dot.high-frac { border: 2px solid var(--amber-light); }
+  .member-dot.high-ncmp { border: 2px solid var(--teal-light); }
+  .member-dot.low-both  { border: 2px solid var(--text-dim); }
+  .dot-tooltip {
+    position: absolute; z-index: 20; pointer-events: none;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.75rem 1rem;
+    font-size: 0.78rem; white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .member-dot:hover .dot-tooltip { opacity: 1; }
+  .q-axis-lbl-x {
+    position: absolute; bottom: 0.4rem; left: 0; right: 0;
+    text-align: center; font-family: var(--mono); font-size: 0.68rem;
+    color: var(--teal); letter-spacing: 0.08em;
+  }
+  .q-axis-lbl-y {
+    position: absolute; top: 50%; left: 0.4rem;
+    font-family: var(--mono); font-size: 0.68rem;
+    color: var(--amber); letter-spacing: 0.08em;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    transform: translateY(-50%) rotate(180deg);
+  }
+
+  /* ── SIGNAL CARDS ── */
+  .signal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .sig-card {
+    background: var(--bg3); border-radius: 10px; padding: 1.1rem 1.2rem;
+    display: flex; flex-direction: column; gap: 0.4rem;
+    border-left: 3px solid transparent; transition: border-color 0.2s;
+  }
+  .sig-card.frac { border-left-color: var(--amber); }
+  .sig-card.ncmp { border-left-color: var(--teal); }
+  .sig-card.excl { border-left-color: var(--maroon); }
+  .sig-name { font-size: 0.88rem; font-weight: 600; color: var(--white); }
+  .sig-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; }
+  .sig-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 0.3rem; }
+  .sig-pts {
+    font-family: var(--mono); font-size: 0.85rem; font-weight: 500;
+  }
+  .sig-pts.frac { color: var(--amber-light); }
+  .sig-pts.ncmp { color: var(--teal-light); }
+  .sig-pts.excl { color: var(--maroon-light); }
+
+  /* ── PIPELINE ── */
+  .pipeline {
+    display: flex; flex-direction: column; gap: 0;
+    position: relative; margin: 1.5rem 0;
+  }
+  .pipe-step {
+    display: grid; grid-template-columns: 3rem 1fr;
+    gap: 1rem; align-items: stretch;
+    position: relative;
+  }
+  .pipe-left {
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .pipe-circle {
+    width: 2.4rem; height: 2.4rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.8rem; font-weight: 500;
+    flex-shrink: 0; z-index: 1;
+  }
+  .pipe-line {
+    width: 2px; flex: 1; min-height: 1.5rem;
+    background: var(--border); margin: 0 auto;
+  }
+  .pipe-content {
+    padding: 0.2rem 0 1.5rem;
+  }
+  .pipe-title { font-weight: 600; color: var(--white); margin-bottom: 0.25rem; }
+  .pipe-desc { font-size: 0.83rem; color: var(--text-dim); }
+
+  /* ── SIMULATOR ── */
+  .sim-wrap { display: grid; grid-template-columns: 1fr 360px; gap: 2rem; align-items: start; }
+  @media(max-width:900px) { .sim-wrap { grid-template-columns: 1fr; } }
+  .sim-signals { display: flex; flex-direction: column; gap: 0.5rem; }
+  .sim-toggle {
+    display: flex; align-items: center; gap: 0.9rem;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.75rem 1rem;
+    cursor: pointer; transition: border-color 0.2s;
+    user-select: none;
+  }
+  .sim-toggle:hover { border-color: var(--teal); }
+  .sim-toggle.active.frac { border-color: var(--amber); background: rgba(245,127,23,0.08); }
+  .sim-toggle.active.ncmp { border-color: var(--teal);  background: rgba(0,137,123,0.08); }
+  .sim-toggle.active.excl { border-color: var(--maroon); background: rgba(136,14,79,0.08); }
+  .toggle-check {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 1.5px solid var(--text-dim);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 0.7rem; transition: all 0.15s;
+  }
+  .sim-toggle.active .toggle-check { border-color: transparent; }
+  .sim-toggle.active.frac .toggle-check { background: var(--amber);  color: var(--bg); }
+  .sim-toggle.active.ncmp .toggle-check { background: var(--teal);   color: var(--bg); }
+  .sim-toggle.active.excl .toggle-check { background: var(--maroon); color: #fff; }
+  .toggle-info { flex: 1; }
+  .toggle-name { font-size: 0.85rem; font-weight: 500; color: var(--white); }
+  .toggle-src  { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim); }
+  .toggle-pts  { font-family: var(--mono); font-size: 0.8rem; }
+  .toggle-pts.frac { color: var(--amber-light); }
+  .toggle-pts.ncmp { color: var(--teal-light); }
+  .toggle-pts.excl { color: var(--maroon-light); }
+
+  /* Score panel */
+  .score-panel {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.75rem; position: sticky; top: 80px;
+  }
+  .score-member-name {
+    font-family: var(--display); font-size: 1.1rem; font-weight: 600;
+    color: var(--white); margin-bottom: 0.1rem;
+  }
+  .score-member-meta { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); margin-bottom: 1.5rem; }
+  .score-axis { margin-bottom: 1.2rem; }
+  .score-axis-label {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+  }
+  .score-bar-track {
+    height: 8px; background: rgba(255,255,255,0.07);
+    border-radius: 4px; overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .score-bar-fill.frac { background: linear-gradient(90deg, var(--amber-dim), var(--amber)); }
+  .score-bar-fill.ncmp { background: linear-gradient(90deg, var(--teal-dim), var(--teal)); }
+  .score-tier {
+    margin-top: 1.5rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+  .tier-badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.1em;
+    padding: 0.4rem 1.2rem; border-radius: 20px; margin-bottom: 0.5rem;
+    transition: all 0.3s;
+  }
+  .tier-badge.excluded  { background: rgba(136,14,79,0.25); color: var(--maroon-light); border: 1px solid var(--maroon); }
+  .tier-badge.dual-high { background: rgba(136,14,79,0.25); color: var(--maroon-light); border: 1px solid var(--maroon); animation: pulse 1.5s infinite; }
+  .tier-badge.high      { background: rgba(245,127,23,0.2);  color: var(--amber-light); border: 1px solid var(--amber); }
+  .tier-badge.medium    { background: rgba(0,137,123,0.2);   color: var(--teal-light);  border: 1px solid var(--teal); }
+  .tier-badge.low       { background: rgba(255,255,255,0.05); color: var(--text-dim);   border: 1px solid var(--border); }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(136,14,79,0.4)} 50%{box-shadow:0 0 0 6px rgba(136,14,79,0)} }
+  .tier-desc { font-size: 0.8rem; color: var(--text-dim); }
+
+  .persona-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .persona-btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: var(--mono); font-size: 0.72rem;
+    padding: 0.35rem 0.85rem; border-radius: 20px; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.05em;
+  }
+  .persona-btn:hover { border-color: var(--teal); color: var(--teal-light); }
+  .persona-btn.active { background: var(--teal-dim); border-color: var(--teal); color: var(--teal-light); }
+
+  /* ── PRIORITY MATRIX ── */
+  .matrix-wrap { overflow-x: auto; margin-bottom: 2rem; }
+  .matrix-table { width: 100%; border-collapse: collapse; }
+  .matrix-table th, .matrix-table td {
+    padding: 0.85rem 1.1rem; text-align: left;
+    border: 1px solid var(--border); font-size: 0.85rem;
+  }
+  .matrix-table th {
+    background: var(--bg3); font-family: var(--mono);
+    font-size: 0.72rem; letter-spacing: 0.08em; color: var(--text-dim);
+    font-weight: 400;
+  }
+  .matrix-table td { background: var(--bg2); }
+  .matrix-table tr:hover td { background: var(--bg3); }
+  .tier-cell { font-family: var(--mono); font-size: 0.78rem; font-weight: 500; }
+  .tier-cell.dual-high { color: var(--maroon-light); }
+  .tier-cell.high      { color: var(--amber-light); }
+  .tier-cell.medium    { color: var(--teal-light); }
+  .tier-cell.low       { color: var(--text-dim); }
+  .tier-cell.excluded  { color: var(--maroon-light); opacity: 0.6; }
+
+  /* ── BMD GAP ── */
+  .timeline-row {
+    display: grid; grid-template-columns: 120px 1fr; gap: 1rem;
+    align-items: center; padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .timeline-source {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.07em;
+    color: var(--text-dim); text-align: right; padding-right: 1rem;
+  }
+  .timeline-bar-wrap { position: relative; height: 28px; }
+  .timeline-bar {
+    position: absolute; height: 20px; top: 4px;
+    border-radius: 4px; display: flex; align-items: center;
+    padding: 0 8px; font-family: var(--mono); font-size: 0.65rem;
+    white-space: nowrap; overflow: hidden;
+  }
+  .new-source-badge {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: var(--maroon-dim); border: 1px dashed var(--maroon);
+    border-radius: 8px; padding: 0.6rem 1rem;
+    font-size: 0.82rem; margin-top: 0.5rem;
+  }
+  .new-source-badge .ns-icon { font-size: 1rem; }
+  .new-source-badge .ns-label { color: var(--maroon-light); font-weight: 600; }
+  .new-source-badge .ns-desc { color: var(--text-dim); font-size: 0.75rem; }
+
+  /* ── FUTURE STATE ── */
+  .future-row { display: flex; flex-direction: column; gap: 0.75rem; }
+  .future-item {
+    display: grid; grid-template-columns: 2.5rem 1fr;
+    gap: 1rem; align-items: start;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.25rem;
+  }
+  .future-icon { font-size: 1.4rem; padding-top: 0.1rem; }
+  .future-title { font-weight: 600; color: var(--white); margin-bottom: 0.2rem; }
+  .future-desc { font-size: 0.83rem; color: var(--text-dim); }
+  .future-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: var(--teal-dim); border: 1px solid var(--teal);
+    border-radius: 10px; padding: 1.1rem 1.3rem;
+    font-size: 0.88rem; margin: 1.5rem 0;
+  }
+  .callout.warn { background: var(--amber-dim); border-color: var(--amber); }
+  .callout.danger { background: var(--maroon-dim); border-color: var(--maroon); }
+  .callout strong { color: var(--white); }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    height: 1px; background: var(--border);
+    margin: 2rem 0;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--teal-dark); border-radius: 3px; }
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">Clinical Rules Engine <span>/ OMW Intelligence Layer</span></div>
+  <div class="badge">PRE-DENOMINATOR STRATEGY — HEDIS MY 2026</div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('challenge')">01 The Challenge</button>
+  <button class="tab-btn" onclick="showTab('engine')">02 Scoring Engine</button>
+  <button class="tab-btn" onclick="showTab('signals')">03 Signal Library</button>
+  <button class="tab-btn" onclick="showTab('bmd')">04 BMD Gap &amp; New Data</button>
+  <button class="tab-btn" onclick="showTab('pipeline')">05 Data Pipeline</button>
+  <button class="tab-btn" onclick="showTab('simulator')">06 Member Simulator</button>
+  <button class="tab-btn" onclick="showTab('matrix')">07 Priority Matrix</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TAB 1: CHALLENGE -->
+<div id="tab-challenge" class="panel active">
+  <h1 class="panel-title">The OMW <em>Sequencing Problem</em></h1>
+  <p class="panel-sub">This is not a pool-size problem. The alert pool is large but stable — and the Stars team has accepted that. The real cost is acting on a fracture trigger before the full claims picture has arrived, then discovering afterward that the member was never truly a gap. The scoring layer doesn't change when Stars acts. It changes how confidently they act, and on whom.</p>
+
+  <!-- TWO-SYSTEM ARCHITECTURE -->
+  <div class="section-divider" style="margin-top:0;margin-bottom:1.5rem;"></div>
+  <h3>How the Two Systems Currently Work Together</h3>
+  <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1.5rem;">The rules engine and the Stars intervention workflow are separate systems with separate triggers. Understanding where each system's responsibility begins and ends is essential context for what the scoring layer adds.</p>
+
+  <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0.75rem;align-items:center;margin-bottom:2rem;">
+    <div class="card accent-teal" style="text-align:center;">
+      <h4 style="margin-bottom:0.5rem;">Rules Engine</h4>
+      <div style="font-family:var(--mono);font-size:0.72rem;color:var(--teal-light);margin-bottom:0.75rem;">Continuous / Monthly</div>
+      <ul class="bullet-list" style="text-align:left;">
+        <li>Evaluates all enrolled female members age 67–85</li>
+        <li>Applies exclusions: no prior fracture (90d), no BMD in 730d, no hospice, no advanced illness, no frailty, no OMW drug</li>
+        <li>Fires standing <strong>OMW-C alert</strong> for all who qualify</li>
+        <li>Alert pool is large but <strong>stable day-to-day</strong></li>
+
+      </ul>
+    </div>
+    <div style="text-align:center;font-size:1.5rem;color:var(--teal);flex-shrink:0;">→</div>
+    <div class="card" style="text-align:center;border-color:var(--amber);">
+      <h4 style="margin-bottom:0.5rem;color:var(--amber-light);">Stars Team</h4>
+      <div style="font-family:var(--mono);font-size:0.72rem;color:var(--amber-light);margin-bottom:0.75rem;">Real-Time / Event-Driven</div>
+      <ul class="bullet-list" style="text-align:left;">
+        <li>Holds the engine's alert pool as their candidate universe</li>
+        <li>Watches their own ADT feed independently for a fracture event</li>
+        <li>Cross-references ADT fracture against alert pool</li>
+        <li>Launches intervention when both conditions are met</li>
+        <li>Prefers to control their own ADT-based activation</li>
+      </ul>
+    </div>
+    <div style="text-align:center;font-size:1.5rem;color:var(--amber);flex-shrink:0;">→</div>
+    <div class="card accent-maroon" style="text-align:center;">
+      <h4 style="margin-bottom:0.5rem;">The Gap</h4>
+      <div style="font-family:var(--mono);font-size:0.72rem;color:var(--maroon-light);margin-bottom:0.75rem;">Days to Weeks Later</div>
+      <ul class="bullet-list" style="text-align:left;">
+        <li>BMD claim arrives with <strong>service date prior to the fracture</strong></li>
+        <li>Member retroactively disqualified from the true OMW denominator</li>
+        <li>Intervention already completed — effort and cost already spent</li>
+        <li>Conversion cannot be counted — no real gap was closed</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- THE REAL PROBLEM -->
+  <div class="callout warn">
+    <strong>The sequencing mismatch:</strong> The ADT (non-claims data) arrives fast — Stars acts on it immediately. The BMD professional claim arrives later, but carries a service date that pre-dates the fracture. The clinical fact existed before the intervention. The administrative record did not. Acting on non-claims triggers without claims-speed exclusion coverage creates this gap.
+  </div>
+
+  <div class="section-divider"></div>
+  <h3>The Cost Landscape</h3>
+  <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1.25rem;">Each wasted intervention carries direct and indirect costs. The primary pain is measurable effort; secondary effects are plausible contributors worth investigating.</p>
+
+  <div class="grid-3" style="margin-bottom:2rem;">
+    <div class="card accent-maroon">
+      <h4>Primary Cost — Confirmed</h4>
+      <p style="font-size:0.85rem;"><strong>Wasted intervention effort.</strong> Every outreach action has a cost — staff time, care manager capacity, outbound communication. Interventions on retroactively disqualified members produce no measurable Stars conversion and cannot be counted toward gap closure.</p>
+    </div>
+    <div class="card accent-amber">
+      <h4>Secondary Cost — Plausible</h4>
+      <p style="font-size:0.85rem;"><strong>Member &amp; provider abrasion.</strong> A member who recently had a BMD or is actively managed for osteoporosis receives an outreach call about a gap that doesn't exist from their provider's perspective. Repeated misfires erode trust in the payer's clinical outreach.</p>
+    </div>
+    <div class="card" style="border-color:var(--text-dim);">
+      <h4 style="color:var(--text-dim);">Secondary Cost — Plausible</h4>
+      <p style="font-size:0.85rem;color:var(--text-dim);"><strong>Alert fatigue.</strong> If the Stars team repeatedly finds that ADT-triggered interventions don't convert — because members self-resolve or retroactively disqualify — the team's confidence in the alert signal degrades over time. High-signal members get the same response cadence as low-signal ones.</p>
+    </div>
+  </div>
+
+  <!-- WHAT THE SCORING LAYER ACTUALLY SOLVES -->
+  <div class="section-divider"></div>
+  <h3>What the Pre-Denominator Scoring Layer Solves</h3>
+  <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1.25rem;">The scoring layer does not change the Stars team's activation workflow. It does not collapse the alert pool — that offer was made and Stars prefers their current model. What it does is attach predictive context to every member in the pool <em>before</em> the ADT fires, so that when Stars acts, they act with confidence rather than uncertainty.</p>
+
+  <div class="compare-wrap">
+    <div class="compare-box before">
+      <div>
+        <div class="compare-label">Current State — When ADT Fires</div>
+        <h3>Uniform Response to Every Alert</h3>
+      </div>
+      <ul class="bullet-list">
+        <li>All ADT fracture cross-references produce the same alert weight</li>
+        <li>No signal about likelihood of self-resolution</li>
+        <li>No signal about whether this member has a BMD likely in the pipeline</li>
+        <li>No signal about whether this member will comply without intervention</li>
+        <li>Stars team learns the member didn't qualify days or weeks after acting</li>
+        <li>No mechanism to identify the genuinely addressable gap before acting</li>
+      </ul>
+    </div>
+    <div class="compare-arrow">→</div>
+    <div class="compare-box after">
+      <div>
+        <div class="compare-label">Proposed State — When ADT Fires</div>
+        <h3>Scored, Ranked, Context-Rich</h3>
+      </div>
+      <ul class="bullet-list">
+        <li>Pre-computed score already waiting in lookup table at ADT trigger time</li>
+        <li>DUAL_HIGH flag identifies members high on both fracture risk AND non-compliance risk</li>
+        <li>Members with any BMD in the prior 730 days are already excluded from the alert pool — only true gaps reach the scored population</li>
+        <li>Likely self-resolvers deprioritized before outreach resources are committed</li>
+        <li>Clinical signal summary in alert payload — team arrives with context, not a cold list</li>
+        <li>Highest-confidence gaps get same-day contact; low-confidence get a hold window</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Design principle:</strong> Stars keeps their ADT activation workflow exactly as-is. The scoring engine enriches the alert pool they already hold — so that when their ADT fires, the response is differentiated, not uniform.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TAB 2: ENGINE -->
+<div id="tab-engine" class="panel">
+  <h1 class="panel-title">The <em>Dual-Axis</em> Scoring Engine</h1>
+  <p class="panel-sub">Every eligible member receives two independently computed sub-scores. The combination determines outreach priority — not a single composite number. A member can score low on fracture risk but high on non-compliance risk; the axes tell different stories.</p>
+
+  <div class="grid-2" style="align-items:start;">
+    <div>
+      <div class="card accent-amber" style="margin-bottom:1rem;">
+        <h4>FRAC Axis — Fracture Risk</h4>
+        <h3 style="color:var(--amber-light);">Who is likely to fracture?</h3>
+        <p style="font-size:0.85rem;margin-top:0.5rem;">Signals: osteoporosis dx, prior fracture history, BMD T-score (lab/LOINC), corticosteroid use, aromatase inhibitors, falls history, BMI, age band.</p>
+        <p style="font-size:0.85rem;"><strong>Max meaningful score: ~17 pts</strong> — HIGH tier threshold ≥ 7</p>
+      </div>
+      <div class="card accent-teal">
+        <h4>N-CMP Axis — Non-Compliance Risk</h4>
+        <h3 style="color:var(--teal-light);">Who won't follow up if they do fracture?</h3>
+        <p style="font-size:0.85rem;margin-top:0.5rem;">Signals: no OMW drug ever, no DEXA ever, no osteoporosis dx, no PCP visit in 12 months, low medication PDC, no specialist visit in 24 months.</p>
+        <p style="font-size:0.85rem;"><strong>Max meaningful score: ~13 pts</strong> — HIGH tier threshold ≥ 5</p>
+      </div>
+    </div>
+
+    <div>
+      <h4 style="text-align:center;margin-bottom:0.75rem;">Priority Quadrant</h4>
+      <div class="quadrant-wrap" id="quadrant">
+        <div class="q-axis-h"></div>
+        <div class="q-axis-v"></div>
+        <div class="q-axis-lbl-x">← LOW NON-COMPLIANCE RISK → HIGH</div>
+        <div class="q-axis-lbl-y">FRACTURE RISK</div>
+
+        <div class="q-quad q-tl">
+          <div class="q-quad-label" style="color:var(--amber-light);">HIGH FRAC<br>LOW N-CMP</div>
+          <div class="q-quad-label" style="color:var(--text-dim);font-size:0.6rem;margin-top:0.2rem;">MONITOR</div>
+        </div>
+        <div class="q-quad q-tr">
+          <div class="q-quad-label" style="color:var(--maroon-light);">DUAL HIGH ★</div>
+          <div class="q-quad-label" style="color:var(--text-dim);font-size:0.6rem;margin-top:0.2rem;">SAME-DAY CONTACT</div>
+        </div>
+        <div class="q-quad q-bl">
+          <div class="q-quad-label" style="color:var(--text-dim);">LOW FRAC<br>LOW N-CMP</div>
+          <div class="q-quad-label" style="color:var(--text-dim);font-size:0.6rem;margin-top:0.2rem;">DEPRIORITIZE</div>
+        </div>
+        <div class="q-quad q-br" style="justify-content:flex-start;">
+          <div class="q-quad-label" style="color:var(--teal-light);">LOW FRAC<br>HIGH N-CMP</div>
+          <div class="q-quad-label" style="color:var(--text-dim);font-size:0.6rem;margin-top:0.2rem;">WATCH</div>
+        </div>
+
+        <!-- Synthetic members plotted on quadrant -->
+        <!-- DUAL HIGH: top-right -->
+        <div class="member-dot dual-high" style="left:72%;top:22%;background:var(--maroon);">
+          <div class="dot-tooltip" style="top:18px;left:18px;">
+            <strong style="color:var(--maroon-light);">Dorothy H., 81</strong><br>
+            FRAC: 14 | N-CMP: 9 | DUAL HIGH ★<br>
+            <span style="color:var(--text-dim);font-size:0.7rem;">Osteoporosis dx, prior hip fx, no DEXA ever</span>
+          </div>
+        </div>
+        <div class="member-dot dual-high" style="left:84%;top:30%;background:var(--maroon);">
+          <div class="dot-tooltip" style="top:18px;right:18px;">
+            <strong style="color:var(--maroon-light);">Mabel T., 78</strong><br>
+            FRAC: 11 | N-CMP: 7 | DUAL HIGH ★<br>
+            <span style="color:var(--text-dim);font-size:0.7rem;">Corticosteroids + aromatase inhibitor, no PCP visit</span>
+          </div>
+        </div>
+
+        <!-- HIGH FRAC LOW NCMP: top-left -->
+        <div class="member-dot high-frac" style="left:22%;top:18%;background:var(--amber);">
+          <div class="dot-tooltip" style="top:18px;left:18px;">
+            <strong style="color:var(--amber-light);">Gertrude S., 83</strong><br>
+            FRAC: 13 | N-CMP: 2 | HIGH FRAC<br>
+            <span style="color:var(--text-dim);font-size:0.7rem;">Prior vertebral fx, on bisphosphonate, recent DEXA</span>
+          </div>
+        </div>
+        <div class="member-dot high-frac" style="left:35%;top:28%;background:var(--amber);">
+          <div class="dot-tooltip" style="top:18px;left:18px;">
+            <strong style="color:var(--amber-light);">Phyllis O., 77</strong><br>
+            FRAC: 9 | N-CMP: 3 | MEDIUM<br>
+            <span style="color:var(--text-dim);font-size:0.7rem;">Falls risk, osteopenia on last BMD, has PCP</span>
+          </div>
+        </div>
+
+        <!-- LOW FRAC HIGH NCMP: bottom-right -->
+        <div class="member-dot high-ncmp" style="left:75%;top:68%;background:var(--teal);">
+          <div class="dot-tooltip" style="bottom:18px;right:18px;">
+            <strong style="color:var(--teal-light);">Brunhilde V., 69</strong><br>
+            FRAC: 3 | N-CMP: 8 | HIGH N-CMP<br>
+            <span style="color:var(--text-dim);font-size:0.7rem;">No DEXA ever, no osteoporosis dx, no specialist</span>
+          </div>
+        </div>
+
+        <!-- LOW BOTH: bottom-left -->
+        <div class="member-dot low-both" style="left:20%;top:72%;background:var(--bg3);">
+          <div class="dot-tooltip" style="bottom:18px;left:18px;">
+            <strong style="color:var(--text-dim);">Winifred P., 68</strong><br>
+            FRAC: 2 | N-CMP: 1 | LOW<br>
+            <span style="color:var(--text-dim);font-size:0.7rem;">No significant signals, recently enrolled</span>
+          </div>
+        </div>
+        <div class="member-dot low-both" style="left:38%;top:78%;background:var(--bg3);">
+          <div class="dot-tooltip" style="bottom:18px;left:18px;">
+            <strong style="color:var(--text-dim);">Agnes F., 70</strong><br>
+            FRAC: 1 | N-CMP: 2 | LOW<br>
+            <span style="color:var(--text-dim);font-size:0.7rem;">Base eligibility only, no risk signals fired</span>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-dim);text-align:center;margin-top:0.4rem;">Hover over member dots to see signal detail</p>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+  <div class="callout">
+    <strong>DUAL_HIGH flag:</strong> fires when <em>both</em> FRAC ≥ 7 AND N-CMP ≥ 5 independently — regardless of composite total. This prevents a member who scores high on only one axis from being treated the same as one who is genuinely high-risk on both dimensions.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TAB 3: SIGNALS -->
+<div id="tab-signals" class="panel">
+  <h1 class="panel-title"><em>Signal Library</em></h1>
+  <p class="panel-sub">All signals used by the scoring engine, grouped by axis. Each signal specifies its data source, lookback window, and point value. Source tags indicate where the data originates today — FHIR-tagged signals represent near-future availability.</p>
+
+  <h4 style="color:var(--amber);margin-bottom:1rem;">FRAC — Fracture Risk Axis</h4>
+  <div class="signal-grid">
+    <div class="sig-card frac">
+      <div class="sig-name">Osteoporosis Diagnosis</div>
+      <div class="sig-desc">ICD-10 M80.x / M81.x on record. Confirmed dx is the strongest single claims-based fracture predictor.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Dx</span></div>
+        <div class="sig-pts frac">+4 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Prior Osteoporotic Fracture</div>
+      <div class="sig-desc">Hip, vertebral, wrist, humerus fracture codes in history. Prior fracture is the highest independent predictor of subsequent fracture.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Dx</span></div>
+        <div class="sig-pts frac">+4 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">BMD T-Score ≤ −2.5 (Osteoporotic)</div>
+      <div class="sig-desc">LOINC 38263-0 / 38264-8. Direct bone density evidence. 36-month lookback — T-scores change slowly.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-lab">Lab / LOINC</span><span class="tag tag-fhir">FHIR</span></div>
+        <div class="sig-pts frac">+3 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Active Corticosteroid Use</div>
+      <div class="sig-desc">Oral prednisone/dexamethasone/methylprednisolone ≥ 5mg/day equivalent. Glucocorticoid-induced osteoporosis is a well-established causal pathway.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-rx">Pharmacy</span></div>
+        <div class="sig-pts frac">+3 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">BMD T-Score −2.5 to −1.0 (Osteopenic)</div>
+      <div class="sig-desc">Elevated risk, not yet osteoporotic threshold. 24-month lookback — osteopenic range is more dynamic.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-lab">Lab / LOINC</span><span class="tag tag-fhir">FHIR</span></div>
+        <div class="sig-pts frac">+2 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Aromatase Inhibitor Use</div>
+      <div class="sig-desc">Anastrozole, letrozole, exemestane. Estrogen suppression accelerates bone loss. 12-month active supply lookback.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-rx">Pharmacy</span></div>
+        <div class="sig-pts frac">+2 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Falls Risk Indicator</div>
+      <div class="sig-desc">2+ fall-related encounters (ICD W00–W19.x, Z91.81) or balance/gait disorder (R26.x, M62.3) in prior 12 months.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Dx</span></div>
+        <div class="sig-pts frac">+2 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Age 80+</div>
+      <div class="sig-desc">Fracture incidence increases sharply above age 80 independent of all other risk factors. Evaluated at each monthly run date.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Membership</span></div>
+        <div class="sig-pts frac">+2 pts</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Vitamin D Deficiency</div>
+      <div class="sig-desc">ICD E55.x or therapeutic-dose Vit D supplement (≥1000 IU/day). Proxy for documented bone health risk acknowledgment by provider. 24-month lookback.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Dx</span><span class="tag tag-rx">Pharmacy</span></div>
+        <div class="sig-pts frac">+1 pt</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Low Body Weight (BMI &lt; 20)</div>
+      <div class="sig-desc">Underweight is an independent fracture risk factor. ICD R63.6, Z68.1 or BMI value from lab/EMR. 24-month lookback.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Dx</span><span class="tag tag-lab">Lab / EMR</span></div>
+        <div class="sig-pts frac">+1 pt</div>
+      </div>
+    </div>
+    <div class="sig-card frac">
+      <div class="sig-name">Age 67–79 (Base Eligibility)</div>
+      <div class="sig-desc">All token-eligible members carry this baseline signal. Ensures minimum score for all candidates in the denominator age band.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Membership</span></div>
+        <div class="sig-pts frac">+1 pt</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <h4 style="color:var(--teal);margin-bottom:1rem;">N-CMP — Non-Compliance Risk Axis</h4>
+  <div class="signal-grid">
+    <div class="sig-card ncmp">
+      <div class="sig-name">No OMW Drug — Ever</div>
+      <div class="sig-desc">No bisphosphonate, denosumab, teriparatide, raloxifene, or romosozumab in any prior pharmacy history. Lifetime lookback. Strongest single non-compliance predictor.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-rx">Pharmacy</span></div>
+        <div class="sig-pts ncmp">+4 pts</div>
+      </div>
+    </div>
+    <div class="sig-card ncmp">
+      <div class="sig-name">No BMD/DEXA — Ever</div>
+      <div class="sig-desc">CPT 77080/77081/77085/77086, HCPCS G0130 absent from all claims history AND absent from lab/LOINC feeds. Lifetime lookback. Note: members with any BMD in the prior 730 days are already excluded from the scored pool entirely — this signal fires only for members with no BMD on record at all, or whose most recent BMD is older than 730 days.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Proc</span><span class="tag tag-lab">Lab / LOINC</span></div>
+        <div class="sig-pts ncmp">+3 pts</div>
+      </div>
+    </div>
+    <div class="sig-card ncmp">
+      <div class="sig-name">No Osteoporosis Diagnosis — Ever</div>
+      <div class="sig-desc">M80.x and M81.x absent from all claims history. Provider has never documented the condition; treatment initiation is unlikely.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Dx</span></div>
+        <div class="sig-pts ncmp">+2 pts</div>
+      </div>
+    </div>
+    <div class="sig-card ncmp">
+      <div class="sig-name">No PCP Visit — 12 Months</div>
+      <div class="sig-desc">Absence of a primary care encounter in the prior year. Members disengaged from primary care are substantially less likely to initiate or follow up post-fracture treatment.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Proc</span></div>
+        <div class="sig-pts ncmp">+2 pts</div>
+      </div>
+    </div>
+    <div class="sig-card ncmp">
+      <div class="sig-name">Low Medication Adherence (PDC &lt; 0.80)</div>
+      <div class="sig-desc">PDC below 80% on any chronic medication class in prior 12 months. General non-adherence pattern predicts post-fracture non-compliance.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-rx">Pharmacy</span></div>
+        <div class="sig-pts ncmp">+1 pt</div>
+      </div>
+    </div>
+    <div class="sig-card ncmp">
+      <div class="sig-name">No Specialist Visit — 24 Months</div>
+      <div class="sig-desc">No rheumatology, endocrinology, or orthopedics encounter in prior 24 months. Chronic disengagement from bone-health-adjacent specialties.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Proc</span></div>
+        <div class="sig-pts ncmp">+1 pt</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+  <h4 style="color:var(--maroon-light);margin-bottom:1rem;">EXCL — Disqualifiers (Pre-Filter)</h4>
+  <div class="signal-grid">
+    <div class="sig-card excl">
+      <div class="sig-name">Active OMW Drug (Prior 12 Months)</div>
+      <div class="sig-desc">Bisphosphonate or qualifying osteoporosis drug dispensed in prior year. Drug claims arrive fast (next-day) — reliable real-time exclusion. Member removed from scored pool.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-rx">Pharmacy</span></div>
+        <div class="sig-pts excl">EXCLUDE</div>
+      </div>
+    </div>
+    <div class="sig-card excl">
+      <div class="sig-name">BMD Test within 730 Days of "Today"</div>
+      <div class="sig-desc">OMW-C assumes "as of today." If a BMD result is present in claims, lab feed, or EMR within the 730-day lookback, the member would self-satisfy the numerator — exclude from outreach pool.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Proc</span><span class="tag tag-lab">Lab / LOINC</span></div>
+        <div class="sig-pts excl">EXCLUDE</div>
+      </div>
+    </div>
+    <div class="sig-card excl">
+      <div class="sig-name">Hospice / Palliative Care</div>
+      <div class="sig-desc">Z51.5, hospice enrollment flag, or palliative care encounter at any time. Permanent removal from token pool — do not re-evaluate.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Flags</span></div>
+        <div class="sig-pts excl">EXCLUDE</div>
+      </div>
+    </div>
+    <div class="sig-card excl">
+      <div class="sig-name">Advanced Illness / Frailty / LTC</div>
+      <div class="sig-desc">Dementia, end-stage organ disease, frailty indicators, or nursing facility residence &gt;90 days. Re-evaluated at each monthly run.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Claims / Dx</span></div>
+        <div class="sig-pts excl">EXCLUDE</div>
+      </div>
+    </div>
+    <div class="sig-card excl">
+      <div class="sig-name">Male or Age &lt; 67</div>
+      <div class="sig-desc">Hard demographic exclusion. OMW denominator is female members age 67–85 only. Males and members under 67 are not scored.</div>
+      <div class="sig-footer">
+        <div><span class="tag tag-claims">Membership</span></div>
+        <div class="sig-pts excl">EXCLUDE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TAB 4: BMD GAP -->
+<div id="tab-bmd" class="panel">
+  <h1 class="panel-title">The <em>BMD Gap</em> — and How to Close It</h1>
+  <p class="panel-sub">Drug exclusions arrive fast. BMD results don't. The asymmetry between these two data streams creates the retroactive-kick problem. This section maps the lag and proposes both tactical and strategic approaches — including new data sources the payer does not currently ingest.</p>
+
+  <div class="callout warn">
+    <strong>The core asymmetry:</strong> Pharmacy claims for OMW-qualifying drugs arrive within 24–48 hours of dispensing — reliable real-time exclusion. BMD results travel through lab feeds and EMR supplemental workflows. The result already exists clinically, but the engine may not see it for days to weeks after the ADT fires.
+  </div>
+
+  <div class="section-divider"></div>
+  <h3>Data Source Speed-to-Engine Comparison</h3>
+  <p style="font-size:0.83rem;color:var(--text-dim);margin-bottom:1.5rem;">Approximate lag from clinical event to engine visibility. Exact lag varies by source and processing schedule.</p>
+
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:2rem;">
+    <div class="timeline-row">
+      <div class="timeline-source" style="color:var(--green-light);">Pharmacy Claim</div>
+      <div class="timeline-bar-wrap">
+        <div class="timeline-bar" style="left:0;width:8%;background:rgba(67,160,71,0.4);color:#81C784;">24–48 hrs</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-source" style="color:var(--amber-light);">ADT (Inpatient)</div>
+      <div class="timeline-bar-wrap">
+        <div class="timeline-bar" style="left:0;width:12%;background:rgba(245,127,23,0.35);color:#FFB74D;">1–3 days</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-source" style="color:var(--amber-light);">Inpatient Auth</div>
+      <div class="timeline-bar-wrap">
+        <div class="timeline-bar" style="left:0;width:14%;background:rgba(171,71,188,0.3);color:#CE93D8;">1–4 days</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-source" style="color:var(--teal-light);">Lab / LOINC Feed</div>
+      <div class="timeline-bar-wrap">
+        <div class="timeline-bar" style="left:0;width:28%;background:rgba(0,137,123,0.35);color:#4DB6AC;">3–14 days typical</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-source" style="color:var(--teal-light);">EMR Suppl. Data</div>
+      <div class="timeline-bar-wrap">
+        <div class="timeline-bar" style="left:0;width:45%;background:rgba(0,137,123,0.25);color:#4DB6AC;">7–21 days / batch</div>
+      </div>
+    </div>
+    <div class="timeline-row" style="border-bottom:none;">
+      <div class="timeline-source" style="color:var(--maroon-light);">Professional Claim</div>
+      <div class="timeline-bar-wrap">
+        <div class="timeline-bar" style="left:0;width:70%;background:rgba(136,14,79,0.3);color:#F48FB1;">14–45 days (claims lag)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+  <h3>Tactical: BMD History as a Compliance Signal (Corrected Framework)</h3>
+  <p style="font-size:0.88rem;margin-bottom:0.5rem;">An important constraint shapes how BMD history can be used as a scoring signal: <strong>any member with a BMD in the prior 730 days is already excluded from the alert pool entirely</strong> — they never reach the scored population. The 730-day lookback is an exclusion gate, not a tiering dimension.</p>
+  <p style="font-size:0.88rem;margin-bottom:1.25rem;">This means every member who <em>does</em> appear in the scored pool either has no BMD on record at all, or has one older than 730 days. Within that population, history still tells two meaningfully different stories.</p>
+
+  <div class="callout warn" style="margin-bottom:1.5rem;">
+    <strong>Key implication:</strong> The "self-resolver" risk — a member whose BMD arrives retroactively and disqualifies them after Stars intervenes — is not driven by members with BMDs in the 500–730 day range. Those members are already excluded. The retroactive disqualification risk comes from members whose BMD claim has a service date just before the fracture but whose claim arrives in the system <em>after</em> the ADT fires. This is a claims-lag problem, not a scoring-window problem.
+  </div>
+
+  <div class="grid-2" style="margin-bottom:2rem;">
+    <div class="card accent-amber">
+      <h4>BMD on Record — Older Than 730 Days</h4>
+      <h3 style="font-size:1rem;color:var(--amber-light);">Prior Engagement — Lapsed</h3>
+      <p style="font-size:0.83rem;">A provider has ordered a BMD at some point in this member's history — bone density is on their clinical radar. The test is simply too old to satisfy the OMW exclusion window. This member carries lower N-CMP risk than someone with no BMD ever: the care relationship around bone health exists. A new order is more likely than for a member with no history.</p>
+      <p style="font-size:0.83rem;margin-top:0.5rem;"><strong>N-CMP signal:</strong> "No BMD ever" does NOT fire. Composite N-CMP score is lower. Outreach priority adjusted accordingly.</p>
+    </div>
+    <div class="card accent-maroon">
+      <h4>No BMD — Ever (Any Source)</h4>
+      <h3 style="font-size:1rem;color:var(--maroon-light);">True Gap — No Prior Engagement</h3>
+      <p style="font-size:0.83rem;">No BMD found in claims, lab feeds, or EMR — across the member's full history. The provider has never ordered one. No care relationship around bone density screening exists. This member will not self-resolve after a fracture. Nothing is coming in the pipeline.</p>
+      <p style="font-size:0.83rem;margin-top:0.5rem;"><strong>N-CMP signal:</strong> +3 pts fires. Combined with other non-compliance signals, this member reaches HIGH N-CMP tier rapidly. Highest outreach priority when ADT fracture fires.</p>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+  <h3>Strategic: New Data Sources to Feed the Engine</h3>
+  <p style="font-size:0.88rem;margin-bottom:1.5rem;">These sources are not currently ingested. Each represents a different level of implementation effort and a different kind of signal — intent-to-test vs. result. Getting upstream of the result is the real prize.</p>
+
+  <div class="future-row">
+    <div class="future-item">
+      <div class="future-icon">🏥</div>
+      <div>
+        <div class="future-title">EPIC Integration — Scheduling &amp; Order Data</div>
+        <div class="future-desc">The payer is integrating EPIC as its clinical workflow platform (UM/CM) by next year. EPIC surfaces pending orders and radiology appointments — not just completed results. A signed DEXA order in EPIC means a BMD result is days away, not weeks. This is the highest-value near-term signal for closing the BMD lag gap. Engine consumes via supplemental data workflow already established for HEDIS.</div>
+        <div class="future-tags">
+          <span class="tag tag-epic">EPIC</span>
+          <span class="tag tag-fhir">FHIR ServiceRequest</span>
+          <span class="tag tag-lab">Pending Order</span>
+          <div style="margin-left:auto;font-family:var(--mono);font-size:0.7rem;color:var(--green-light);">12–18 month horizon</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="future-item">
+      <div class="future-icon">📡</div>
+      <div>
+        <div class="future-title">FHIR ServiceRequest Feed — EHR Order Intent</div>
+        <div class="future-desc">A FHIR R4 <code style="font-family:var(--mono);font-size:0.8rem;color:var(--teal-light);">ServiceRequest</code> resource is created when a provider signs a DEXA order — before the appointment is scheduled, before the result exists. Connected health systems can expose this via SMART on FHIR or bulk FHIR APIs. The payer already trades FHIR data and is building toward a FHIR-native rules engine architecture. This feed is the cleanest long-term answer to "get BMD data faster" — it's not a result feed, it's an intent feed.</div>
+        <div class="future-tags">
+          <span class="tag tag-fhir">FHIR R4</span>
+          <span class="tag tag-fhir">SMART on FHIR</span>
+          <span class="tag tag-fhir">Bulk FHIR</span>
+          <div style="margin-left:auto;font-family:var(--mono);font-size:0.7rem;color:var(--amber-light);">18–36 month horizon</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="future-item">
+      <div class="future-icon">🔗</div>
+      <div>
+        <div class="future-title">HIE Real-Time ADT + Lab Expansion</div>
+        <div class="future-desc">Current HIE connections feed ADT records and some lab results. Most HIE connections are not configured to push BMD-specific lab results proactively — they respond to queries or send full lab panels on a schedule. A targeted subscription for LOINC 38263-0 / 38264-8 (T-score codes) on existing HIE connections could dramatically reduce BMD lag without a new data source — just a configuration change to an existing feed.</div>
+        <div class="future-tags">
+          <span class="tag tag-lab">Lab / LOINC</span>
+          <span class="tag tag-adt">HIE</span>
+          <span class="tag tag-fhir">FHIR Subscription</span>
+          <div style="margin-left:auto;font-family:var(--mono);font-size:0.7rem;color:var(--green-light);">6–12 month horizon</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="future-item">
+      <div class="future-icon">📋</div>
+      <div>
+        <div class="future-title">Note on Authorizations — Why BMDs Are a Gap Here</div>
+        <div class="future-desc">The engine currently supplements ADT records with inpatient prior authorization data — a reliable proxy when ADTs are missing, because inpatient services require auth. BMDs (outpatient DEXA) do not require prior authorization. ER visits similarly do not generate outpatient auths. This means UM authorization data cannot serve as a BMD proxy — there is nothing to look up. The EPIC scheduling feed and FHIR ServiceRequest are the correct substitutes for the "intent signal" that auth data provides for inpatient events.</div>
+        <div class="future-tags">
+          <span class="tag tag-auth">UM / Auth</span>
+          <div style="margin-left:auto;font-family:var(--mono);font-size:0.7rem;color:var(--text-dim);">Design constraint</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TAB 5: PIPELINE -->
+<div id="tab-pipeline" class="panel">
+  <h1 class="panel-title">Data <em>Pipeline</em> Architecture</h1>
+  <p class="panel-sub">The scoring engine runs monthly, pre-computes all scores, and stores them in a lookup table. When an ADT or real-time fracture signal fires, the enrichment layer retrieves the pre-computed score — no re-derivation at trigger time. Speed at the moment of outreach depends on work done upstream.</p>
+
+  <div class="grid-2" style="gap:2rem;align-items:start;">
+    <div>
+      <h4 style="margin-bottom:1.25rem;">Event Flow</h4>
+      <div class="pipeline">
+        <div class="pipe-step">
+          <div class="pipe-left">
+            <div class="pipe-circle" style="background:var(--teal-dim);color:var(--teal-light);border:1px solid var(--teal);">01</div>
+            <div class="pipe-line"></div>
+          </div>
+          <div class="pipe-content">
+            <div class="pipe-title">Monthly Score Run</div>
+            <div class="pipe-desc">Rules engine executes PRE_OMW_RISK_SCORE against all enrolled female members age 67+. Applies exclusion pre-filter. Computes FRAC and N-CMP sub-scores. Stores results in <code style="font-family:var(--mono);font-size:0.78rem;color:var(--teal-light);">PRE_OMW_SCORE_TBL</code> with run timestamp.</div>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-left">
+            <div class="pipe-circle" style="background:var(--teal-dim);color:var(--teal-light);border:1px solid var(--teal);">02</div>
+            <div class="pipe-line"></div>
+          </div>
+          <div class="pipe-content">
+            <div class="pipe-title">Real-Time Fracture Trigger</div>
+            <div class="pipe-desc">ADT event arrives with qualifying fracture diagnosis — OR inpatient authorization record with fracture code (used as ADT supplement when direct ADT is missing). ER fractures without auth are covered by direct ADT feed.</div>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-left">
+            <div class="pipe-circle" style="background:var(--teal-dim);color:var(--teal-light);border:1px solid var(--teal);">03</div>
+            <div class="pipe-line"></div>
+          </div>
+          <div class="pipe-content">
+            <div class="pipe-title">Score Lookup &amp; Staleness Check</div>
+            <div class="pipe-desc">ADT enrichment layer queries <code style="font-family:var(--mono);font-size:0.78rem;color:var(--teal-light);">PRE_OMW_SCORE_TBL</code> on MBR_ID. Checks RUN_DT — if score is &gt; 60 days old, flag as STALE and downgrade to MEDIUM priority. Stale records fall through to existing ADT workflow.</div>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-left">
+            <div class="pipe-circle" style="background:var(--teal-dim);color:var(--teal-light);border:1px solid var(--teal);">04</div>
+            <div class="pipe-line"></div>
+          </div>
+          <div class="pipe-content">
+            <div class="pipe-title">Exclusion Suppression Check</div>
+            <div class="pipe-desc">If EXCL_FLG = Y: suppress ADT outreach alert entirely. Member is pre-identified as non-addressable (hospice, active OMW drug, BMD within lookback, frailty, etc.). Alert does not reach the outreach queue.</div>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-left">
+            <div class="pipe-circle" style="background:var(--maroon-dim);color:var(--maroon-light);border:1px solid var(--maroon);">05</div>
+            <div class="pipe-line"></div>
+          </div>
+          <div class="pipe-content">
+            <div class="pipe-title">Enriched Alert Delivery</div>
+            <div class="pipe-desc">Outreach queue receives alert payload: PRIORITY_TIER, DUAL_HIGH_FLG, COMPOSITE_SCORE, FRAC sub-score, N-CMP sub-score, and an auto-generated OUTREACH_NOTE summarizing the key signals that fired for this member.</div>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-left">
+            <div class="pipe-circle" style="background:var(--green-dim);color:var(--green-light);border:1px solid var(--green);">06</div>
+            <div class="pipe-line" style="display:none;"></div>
+          </div>
+          <div class="pipe-content">
+            <div class="pipe-title">Outreach Team Action</div>
+            <div class="pipe-desc">DUAL_HIGH and HIGH ★: same-day contact. MEDIUM: standard SLA. LOW: queue for follow-up only if capacity allows. Clinical note in alert means the care team arrives with context — not a cold call.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h4 style="margin-bottom:1.25rem;">Data Sources Feeding the Engine</h4>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div class="card">
+          <h4>Today — Active Feeds</h4>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-claims">Claims / Dx</span> Medical, pharmacy, professional claims</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-rx">Pharmacy</span> Drug fills — next-day availability</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-lab">Lab / LOINC</span> Lab results including T-scores</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-adt">ADT</span> Inpatient admit/discharge/transfer</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-auth">Inpatient Auth</span> UM auth records (inpatient only)</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-adt">HIE / EMR</span> Supplemental data via HEDIS workflow</div>
+          </div>
+        </div>
+        <div class="card accent-teal">
+          <h4 style="color:var(--teal-light);">Near-Term — 6–18 Months</h4>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-epic">EPIC</span> Scheduling + order data via clinical workflow platform integration</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-lab">HIE LOINC Sub</span> Targeted T-score subscription on existing HIE connections</div>
+          </div>
+        </div>
+        <div class="card accent-maroon">
+          <h4 style="color:var(--maroon-light);">Future State — FHIR-Native Engine</h4>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-fhir">FHIR ServiceRequest</span> Order intent before results exist</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-fhir">FHIR Appointment</span> Radiology scheduling signal</div>
+            <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.83rem;"><span class="tag tag-fhir">Bulk FHIR</span> Population-level patient data store</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TAB 6: SIMULATOR -->
+<div id="tab-simulator" class="panel">
+  <h1 class="panel-title"><em>Member Simulator</em></h1>
+  <p class="panel-sub">Toggle clinical signals on or off and watch the FRAC score, N-CMP score, and outreach priority tier update in real time. Load a synthetic member persona or build a profile from scratch.</p>
+
+  <div class="persona-btns" id="personaBtns">
+    <button class="persona-btn active" onclick="loadPersona('dorothy')">Dorothy H., 81</button>
+    <button class="persona-btn" onclick="loadPersona('mabel')">Mabel T., 78</button>
+    <button class="persona-btn" onclick="loadPersona('gertrude')">Gertrude S., 83</button>
+    <button class="persona-btn" onclick="loadPersona('brunhilde')">Brunhilde V., 69</button>
+    <button class="persona-btn" onclick="loadPersona('winifred')">Winifred P., 68</button>
+    <button class="persona-btn" onclick="loadPersona('blank')">Blank Profile</button>
+  </div>
+
+  <div class="sim-wrap">
+    <div>
+      <h4 style="margin-bottom:0.75rem;">FRAC — Fracture Risk Signals</h4>
+      <div class="sim-signals" id="simFracSignals">
+        <!-- populated by JS -->
+      </div>
+      <h4 style="margin-top:1.5rem;margin-bottom:0.75rem;">N-CMP — Non-Compliance Signals</h4>
+      <div class="sim-signals" id="simNcmpSignals"></div>
+      <h4 style="margin-top:1.5rem;margin-bottom:0.75rem;">EXCL — Disqualifiers</h4>
+      <div class="sim-signals" id="simExclSignals"></div>
+    </div>
+
+    <div>
+      <div class="score-panel" id="scorePanel">
+        <div class="score-member-name" id="simName">Dorothy H.</div>
+        <div class="score-member-meta" id="simMeta">Age 81 &nbsp;·&nbsp; Female &nbsp;·&nbsp; Enrolled 48 months</div>
+
+        <div class="score-axis">
+          <div class="score-axis-label">
+            <span style="color:var(--amber);">FRACTURE RISK (FRAC)</span>
+            <span id="fracScore" style="color:var(--amber-light);">0 pts</span>
+          </div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill frac" id="fracBar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="score-axis">
+          <div class="score-axis-label">
+            <span style="color:var(--teal);">NON-COMPLIANCE (N-CMP)</span>
+            <span id="ncmpScore" style="color:var(--teal-light);">0 pts</span>
+          </div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill ncmp" id="ncmpBar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="score-tier">
+          <div class="tier-badge low" id="tierBadge">LOW</div>
+          <div class="tier-desc" id="tierDesc">No significant risk signals. Deprioritize in outreach queue.</div>
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+            <div style="font-family:var(--mono);font-size:0.68rem;color:var(--text-dim);margin-bottom:0.4rem;">COMPOSITE SCORE</div>
+            <div style="font-family:var(--display);font-size:2.5rem;font-weight:800;color:var(--white);" id="compositeScore">0</div>
+          </div>
+          <div id="dualHighFlag" style="display:none;margin-top:0.75rem;">
+            <span style="font-family:var(--mono);font-size:0.72rem;letter-spacing:0.1em;color:var(--maroon-light);">★ DUAL_HIGH FLAG ACTIVE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TAB 7: MATRIX -->
+<div id="tab-matrix" class="panel">
+  <h1 class="panel-title"><em>Priority Matrix</em> &amp; Outreach SLA</h1>
+  <p class="panel-sub">The combination of FRAC tier and N-CMP tier maps to a priority level surfaced to the outreach team at ADT trigger time. The matrix is evaluated at ADT time — not at score run time — ensuring the most current score drives the triage decision.</p>
+
+  <div class="callout" style="margin-bottom:2rem;">
+    <strong>FRAC HIGH ≥ 7 pts &nbsp;|&nbsp; N-CMP HIGH ≥ 5 pts</strong> — These thresholds are starting-point estimates. Final calibration should be driven by retrospective analysis of denominator populations from prior measurement years.
+  </div>
+
+  <div class="matrix-wrap">
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>FRAC Tier</th>
+          <th>N-CMP Tier</th>
+          <th>DUAL_HIGH</th>
+          <th>Priority Tier</th>
+          <th>Outreach SLA</th>
+          <th>Profile</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>HIGH (≥7)</td>
+          <td>HIGH (≥5)</td>
+          <td><span style="color:var(--maroon-light);font-family:var(--mono);">★ YES</span></td>
+          <td><span class="tier-cell dual-high">DUAL HIGH ★</span></td>
+          <td>Same-day contact</td>
+          <td>Most likely to fracture AND most likely to not follow up. Highest addressable risk.</td>
+        </tr>
+        <tr>
+          <td>HIGH (≥7)</td>
+          <td>MED (2–4)</td>
+          <td><span style="color:var(--text-dim);font-family:var(--mono);">No</span></td>
+          <td><span class="tier-cell high">HIGH ★</span></td>
+          <td>Same-day / next business day</td>
+          <td>High fracture risk but some care engagement. May self-resolve — verify BMD status before outreach.</td>
+        </tr>
+        <tr>
+          <td>MED (3–6)</td>
+          <td>HIGH (≥5)</td>
+          <td><span style="color:var(--text-dim);font-family:var(--mono);">No</span></td>
+          <td><span class="tier-cell high">HIGH ★</span></td>
+          <td>Same-day / next business day</td>
+          <td>Moderate fracture risk but significant compliance gap. Will not self-resolve if fracture occurs.</td>
+        </tr>
+        <tr>
+          <td>HIGH (≥7)</td>
+          <td>LOW (0–1)</td>
+          <td><span style="color:var(--text-dim);font-family:var(--mono);">No</span></td>
+          <td><span class="tier-cell medium">MEDIUM</span></td>
+          <td>Within 5 business days</td>
+          <td>High fracture risk but already engaged in bone health care. BMD and/or treatment likely already managed.</td>
+        </tr>
+        <tr>
+          <td>MED (3–6)</td>
+          <td>MED (2–4)</td>
+          <td><span style="color:var(--text-dim);font-family:var(--mono);">No</span></td>
+          <td><span class="tier-cell medium">MEDIUM</span></td>
+          <td>Within 5 business days</td>
+          <td>Moderate risk on both axes. Worth outreach but not urgent.</td>
+        </tr>
+        <tr>
+          <td>LOW (1–2)</td>
+          <td>HIGH (≥5)</td>
+          <td><span style="color:var(--text-dim);font-family:var(--mono);">No</span></td>
+          <td><span class="tier-cell medium">MEDIUM</span></td>
+          <td>Within 5 business days</td>
+          <td>Low fracture risk but significant care gap. May become relevant in subsequent years.</td>
+        </tr>
+        <tr>
+          <td>LOW (1–2)</td>
+          <td>LOW–MED</td>
+          <td><span style="color:var(--text-dim);font-family:var(--mono);">No</span></td>
+          <td><span class="tier-cell low">LOW</span></td>
+          <td>Queue only if capacity allows</td>
+          <td>Minimal signal across both axes. Unlikely to enter OMW denominator in current year.</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="color:var(--text-dim);font-style:italic;">Any — exclusion fired</td>
+          <td>—</td>
+          <td><span class="tier-cell excluded">EXCLUDED</span></td>
+          <td>Alert suppressed</td>
+          <td>Active OMW drug, BMD in lookback, hospice, frailty, or demographic exclusion. Do not route to outreach.</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="color:var(--text-dim);font-style:italic;">Score STALE (&gt;60 days)</td>
+          <td>—</td>
+          <td><span class="tier-cell medium">MEDIUM (override)</span></td>
+          <td>Standard SLA</td>
+          <td>Score exists but is stale relative to ADT date. Downgrade to MEDIUM pending next monthly run.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-divider"></div>
+  <h3>Backwards Compatibility</h3>
+  <div class="grid-2">
+    <div class="card accent-teal">
+      <h4>No Score Record Found</h4>
+      <p style="font-size:0.85rem;">New enrollees or members not yet scored fall through to the existing ADT outreach workflow unchanged. The intelligence layer enriches — it does not replace — the current pipeline.</p>
+    </div>
+    <div class="card accent-amber">
+      <h4>Score Exists — Exclusion Fired</h4>
+      <p style="font-size:0.85rem;">If EXCL_FLG = Y, the ADT alert is suppressed before it reaches the outreach queue. This is the mechanism that prevents outreach to hospice members, members already on OMW drugs, and members with a recent BMD on record.</p>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:2rem;">
+    <strong>Phase 2 signal (PRIOR_NONCMPL):</strong> When a non-compliant denominator history table is built from prior measurement years, a +4 N-CMP signal fires for members who were previously in the OMW denominator and did not meet the numerator. This single signal will meaningfully sharpen score precision for the repeat-non-complier population.
+  </div>
+</div>
+
+<script>
+// ── TAB SWITCHING ──
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── SIMULATOR DATA ──
+const FRAC_SIGNALS = [
+  { id:'osteo_dx',   name:'Osteoporosis Diagnosis',         pts:4, src:'Claims / Dx' },
+  { id:'prior_fx',   name:'Prior Osteoporotic Fracture',    pts:4, src:'Claims / Dx' },
+  { id:'bmd_osteo',  name:'BMD T-Score ≤ −2.5',            pts:3, src:'Lab / LOINC' },
+  { id:'cortico',    name:'Active Corticosteroid Use',       pts:3, src:'Pharmacy' },
+  { id:'bmd_openia', name:'BMD T-Score −2.5 to −1.0',      pts:2, src:'Lab / LOINC' },
+  { id:'aromata',    name:'Aromatase Inhibitor Use',         pts:2, src:'Pharmacy' },
+  { id:'falls',      name:'Falls Risk Indicator',            pts:2, src:'Claims / Dx' },
+  { id:'age80',      name:'Age 80+',                         pts:2, src:'Membership' },
+  { id:'vitd',       name:'Vitamin D Deficiency',            pts:1, src:'Claims / Dx' },
+  { id:'lowbmi',     name:'Low Body Weight (BMI < 20)',      pts:1, src:'Lab / EMR' },
+  { id:'age67',      name:'Age 67–79 (Base Eligibility)',    pts:1, src:'Membership' },
+];
+
+const NCMP_SIGNALS = [
+  { id:'no_drug',    name:'No OMW Drug — Ever',             pts:4, src:'Pharmacy' },
+  { id:'no_dexa',    name:'No BMD/DEXA — Ever',             pts:3, src:'Claims / Lab' },
+  { id:'no_ostdx',   name:'No Osteoporosis Dx — Ever',      pts:2, src:'Claims / Dx' },
+  { id:'no_pcp',     name:'No PCP Visit — 12 Months',       pts:2, src:'Claims / Proc' },
+  { id:'low_pdc',    name:'Low Medication Adherence',        pts:1, src:'Pharmacy' },
+  { id:'no_spec',    name:'No Specialist Visit — 24 Months', pts:1, src:'Claims / Proc' },
+];
+
+const EXCL_SIGNALS = [
+  { id:'excl_drug',  name:'Active OMW Drug (Prior 12 Mo)',  pts:0, src:'Pharmacy' },
+  { id:'excl_bmd',   name:'BMD within 730 Days',            pts:0, src:'Claims / Lab' },
+  { id:'excl_hosp',  name:'Hospice / Palliative Care',      pts:0, src:'Claims / Flags' },
+  { id:'excl_adv',   name:'Advanced Illness / Frailty',     pts:0, src:'Claims / Dx' },
+];
+
+const PERSONAS = {
+  dorothy:   { name:'Dorothy H.', meta:'Age 81 · Female · Enrolled 48 months', frac:['osteo_dx','prior_fx','bmd_osteo','age80','vitd'], ncmp:['no_drug','no_dexa','no_ostdx'], excl:[] },
+  mabel:     { name:'Mabel T.',   meta:'Age 78 · Female · Enrolled 22 months', frac:['cortico','aromata','falls','bmd_openia'], ncmp:['no_drug','no_pcp','no_spec'], excl:[] },
+  gertrude:  { name:'Gertrude S.',meta:'Age 83 · Female · Enrolled 60 months', frac:['prior_fx','bmd_osteo','age80','falls'], ncmp:['no_pcp'], excl:['excl_drug','excl_bmd'] },
+  brunhilde: { name:'Brunhilde V.',meta:'Age 69 · Female · Enrolled 14 months', frac:['age67'], ncmp:['no_drug','no_dexa','no_ostdx','no_spec'], excl:[] },
+  winifred:  { name:'Winifred P.',meta:'Age 68 · Female · Enrolled 6 months',  frac:['age67'], ncmp:[], excl:[] },
+  blank:     { name:'New Member', meta:'Age — · Female · Enrolled —',           frac:[], ncmp:[], excl:[] },
+};
+
+let activeSignals = new Set();
+let currentPersona = 'dorothy';
+
+function buildSimSignals() {
+  function makeToggle(sig, axis) {
+    const div = document.createElement('div');
+    div.className = `sim-toggle ${axis}` + (activeSignals.has(sig.id) ? ` active` : '');
+    div.id = 'toggle-' + sig.id;
+    div.dataset.axis = axis;
+    div.dataset.id = sig.id;
+    div.dataset.pts = sig.pts;
+    div.onclick = () => toggleSignal(sig.id, axis, sig.pts);
+
+    const check = `<div class="toggle-check">${activeSignals.has(sig.id) ? '✓' : ''}</div>`;
+    const ptsLabel = axis === 'excl'
+      ? `<span class="toggle-pts excl">EXCL</span>`
+      : `<span class="toggle-pts ${axis}">+${sig.pts}</span>`;
+
+    div.innerHTML = check + `
+      <div class="toggle-info">
+        <div class="toggle-name">${sig.name}</div>
+        <div class="toggle-src">${sig.src}</div>
+      </div>
+      ${ptsLabel}
+    `;
+    return div;
+  }
+
+  const sf = document.getElementById('simFracSignals'); sf.innerHTML = '';
+  FRAC_SIGNALS.forEach(s => sf.appendChild(makeToggle(s,'frac')));
+
+  const sn = document.getElementById('simNcmpSignals'); sn.innerHTML = '';
+  NCMP_SIGNALS.forEach(s => sn.appendChild(makeToggle(s,'ncmp')));
+
+  const se = document.getElementById('simExclSignals'); se.innerHTML = '';
+  EXCL_SIGNALS.forEach(s => se.appendChild(makeToggle(s,'excl')));
+}
+
+function toggleSignal(id, axis, pts) {
+  if (activeSignals.has(id)) activeSignals.delete(id);
+  else activeSignals.add(id);
+  updateScorePanel();
+  // rebuild just the toggle visuals
+  buildSimSignals();
+}
+
+function updateScorePanel() {
+  const excluded = EXCL_SIGNALS.some(s => activeSignals.has(s.id));
+
+  let frac = 0, ncmp = 0;
+  FRAC_SIGNALS.forEach(s => { if (activeSignals.has(s.id)) frac += s.pts; });
+  NCMP_SIGNALS.forEach(s => { if (activeSignals.has(s.id)) ncmp += s.pts; });
+
+  document.getElementById('fracScore').textContent = frac + ' pts';
+  document.getElementById('ncmpScore').textContent = ncmp + ' pts';
+  document.getElementById('compositeScore').textContent = frac + ncmp;
+
+  const maxFrac = 17, maxNcmp = 13;
+  document.getElementById('fracBar').style.width = Math.min(100, (frac/maxFrac)*100) + '%';
+  document.getElementById('ncmpBar').style.width = Math.min(100, (ncmp/maxNcmp)*100) + '%';
+
+  const badge = document.getElementById('tierBadge');
+  const desc  = document.getElementById('tierDesc');
+  const dual  = document.getElementById('dualHighFlag');
+  dual.style.display = 'none';
+
+  if (excluded) {
+    badge.className = 'tier-badge excluded';
+    badge.textContent = 'EXCLUDED';
+    desc.textContent = 'Exclusion signal active. Alert suppressed — member not routed to outreach queue.';
+  } else if (frac >= 7 && ncmp >= 5) {
+    badge.className = 'tier-badge dual-high';
+    badge.textContent = 'DUAL HIGH ★';
+    desc.textContent = 'Highest addressable risk. Same-day contact when ADT fires.';
+    dual.style.display = 'block';
+  } else if (frac >= 7 || ncmp >= 5) {
+    badge.className = 'tier-badge high';
+    badge.textContent = 'HIGH ★';
+    desc.textContent = 'Elevated risk on at least one axis. Same-day or next business day contact.';
+  } else if (frac >= 3 || ncmp >= 2) {
+    badge.className = 'tier-badge medium';
+    badge.textContent = 'MEDIUM';
+    desc.textContent = 'Moderate signal. Standard outreach SLA — within 5 business days.';
+  } else {
+    badge.className = 'tier-badge low';
+    badge.textContent = 'LOW';
+    desc.textContent = 'Minimal signals. Deprioritize — queue only if capacity allows.';
+  }
+}
+
+function loadPersona(key) {
+  currentPersona = key;
+  const p = PERSONAS[key];
+  activeSignals = new Set([...p.frac, ...p.ncmp, ...p.excl]);
+
+  document.getElementById('simName').textContent = p.name;
+  document.getElementById('simMeta').textContent = p.meta;
+
+  document.querySelectorAll('.persona-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.persona-btn').forEach(b => {
+    if (b.textContent.includes(p.name.split(',')[0])) b.classList.add('active');
+  });
+
+  buildSimSignals();
+  updateScorePanel();
+}
+
+// Init
+loadPersona('dorothy');
+</script>
+
+</body>
+</html>
