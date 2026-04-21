@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMW Compliance — What-If Scenario Modeler</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2334;
+    --border: #2a3049;
+    --accent: #3ecf8e;
+    --accent2: #f7c948;
+    --accent3: #e05a5a;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(62,207,142,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(62,207,142,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header-left h1 {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .header-left p {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  /* KPI strip */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi.baseline::before { background: var(--muted); }
+  .kpi.projected::before { background: var(--accent); }
+  .kpi.delta::before { background: var(--accent2); }
+  .kpi.gain::before { background: #60a5fa; }
+
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 1.7rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .kpi.baseline .kpi-value { color: var(--text); }
+  .kpi.projected .kpi-value { color: var(--accent); }
+  .kpi.delta .kpi-value { color: var(--accent2); }
+  .kpi.gain .kpi-value { color: #60a5fa; }
+
+  .kpi-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  /* Two-column layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-header .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  thead th {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    white-space: nowrap;
+  }
+
+  thead th:first-child { text-align: left; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(42,48,73,0.5);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+
+  td {
+    padding: 9px 12px;
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+
+  td:first-child {
+    text-align: left;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .rate-cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .rate-bar-bg {
+    width: 48px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .rate-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+
+  /* Target slider */
+  .target-cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 80px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent2);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent2);
+    cursor: pointer;
+    border: none;
+  }
+
+  .slider-val {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent2);
+    min-width: 38px;
+    text-align: right;
+  }
+
+  .delta-cell {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+  }
+
+  .delta-pos { color: var(--accent); }
+  .delta-neg { color: var(--accent3); }
+  .delta-zero { color: var(--muted); }
+
+  /* Right panel — scenario summary */
+  .summary-panel { display: flex; flex-direction: column; gap: 0; }
+
+  .summary-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-section:last-child { border-bottom: none; }
+
+  .summary-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+  }
+
+  .summary-row:last-child { margin-bottom: 0; }
+
+  .summary-row .label { color: var(--muted); font-family: var(--sans); }
+  .summary-row .val { font-family: var(--mono); font-weight: 600; }
+
+  .top-gainers { display: flex; flex-direction: column; gap: 6px; }
+
+  .gainer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .gainer-name {
+    font-size: 0.75rem;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .gainer-val {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+    margin-top: 12px;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+
+  .note {
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding: 10px 16px;
+    font-family: var(--mono);
+    border-top: 1px solid var(--border);
+    line-height: 1.5;
+  }
+
+  /* highlight rows that changed */
+  tr.changed { background: rgba(247,201,72,0.04) !important; }
+
+  @media (max-width: 800px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="header-left">
+      <h1>OMW — Compliance What-If Modeler</h1>
+      <p>HEDIS Osteoporosis Management in Women (OMW) · Fracture body part analysis</p>
+    </div>
+  </header>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip">
+    <div class="kpi baseline">
+      <div class="kpi-label">Baseline Compliant</div>
+      <div class="kpi-value" id="kpi-base-comp">10,102</div>
+      <div class="kpi-sub">of 22,145 total members</div>
+    </div>
+    <div class="kpi projected">
+      <div class="kpi-label">Projected Compliant</div>
+      <div class="kpi-value" id="kpi-proj-comp">10,102</div>
+      <div class="kpi-sub">scenario adjusted</div>
+    </div>
+    <div class="kpi delta">
+      <div class="kpi-label">Additional Passes</div>
+      <div class="kpi-value" id="kpi-delta">+0</div>
+      <div class="kpi-sub">net new compliant members</div>
+    </div>
+    <div class="kpi gain">
+      <div class="kpi-label">Rate Δ</div>
+      <div class="kpi-value" id="kpi-rate-delta">+0.00%</div>
+      <div class="kpi-sub" id="kpi-rate-sub">45.62% → 45.62%</div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- Main table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="dot"></div>
+        Body Part Detail — drag sliders to set target compliance rate
+      </div>
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th>Body Part</th>
+            <th>Non-Comp</th>
+            <th>Compliant</th>
+            <th>Total</th>
+            <th>Baseline Rate</th>
+            <th>Target Rate</th>
+            <th>Proj. Passes</th>
+            <th>Δ Passes</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+      <div class="note">* HAND (n=3, 100%) excluded from sliders — not actionable. Adjust sliders above baseline to model additional compliance.</div>
+    </div>
+
+    <!-- Right summary -->
+    <div class="panel summary-panel">
+      <div class="panel-header">
+        <div class="dot"></div>
+        Scenario Summary
+      </div>
+      <div class="summary-section">
+        <div class="summary-label">Overall Rates</div>
+        <div class="summary-row">
+          <span class="label">Baseline</span>
+          <span class="val" id="sum-base-rate">45.62%</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Projected</span>
+          <span class="val" id="sum-proj-rate" style="color:var(--accent)">45.62%</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Net change</span>
+          <span class="val" id="sum-delta-rate" style="color:var(--accent2)">+0.00 pp</span>
+        </div>
+      </div>
+      <div class="summary-section">
+        <div class="summary-label">Member Impact</div>
+        <div class="summary-row">
+          <span class="label">Total non-compliant</span>
+          <span class="val">12,043</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Addressable (sliders moved)</span>
+          <span class="val" id="sum-addressable">0</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Projected new passes</span>
+          <span class="val" id="sum-new-passes" style="color:var(--accent)">0</span>
+        </div>
+      </div>
+      <div class="summary-section">
+        <div class="summary-label">Top Movers</div>
+        <div class="top-gainers" id="top-gainers">
+          <div style="color:var(--muted);font-size:0.75rem;font-family:var(--mono)">Move sliders to see top contributors</div>
+        </div>
+      </div>
+      <div class="summary-section">
+        <button class="reset-btn" onclick="resetAll()">⟳ Reset all targets to baseline</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const RAW = [
+  { name: "FEMUR (INCLUDES HIP)",      nonComp: 1021, comp: 857  },
+  { name: "FOOT",                       nonComp: 1393, comp: 1187 },
+  { name: "FOREARM",                    nonComp: 2104, comp: 1621 },
+  { name: "HAND",                       nonComp: 0,    comp: 3    },
+  { name: "LOWER LEG/ANKLE",            nonComp: 2106, comp: 1545 },
+  { name: "LUMBAR SPINE/PELVIS",        nonComp: 1094, comp: 1295 },
+  { name: "PROSTHETIC",                 nonComp: 42,   comp: 40   },
+  { name: "RIBS/STERNUM/THORACIC SP.",  nonComp: 1557, comp: 1427 },
+  { name: "SHOULDER/UPPER ARM",         nonComp: 1732, comp: 1164 },
+  { name: "UNKNOWN",                    nonComp: 75,   comp: 126  },
+  { name: "VERTEBRA",                   nonComp: 232,  comp: 270  },
+  { name: "WRIST/HAND",                 nonComp: 687,  comp: 567  },
+];
+
+const GRAND_TOTAL = 22145;
+const BASE_COMPLIANT = 10102;
+const BASE_RATE = BASE_COMPLIANT / GRAND_TOTAL;
+
+// Enrich
+const data = RAW.map(r => {
+  const total = r.nonComp + r.comp;
+  const baseRate = total > 0 ? r.comp / total : 0;
+  return { ...r, total, baseRate, targetRate: baseRate };
+});
+
+// slider refs keyed by index
+const sliders = {};
+
+function buildTable() {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  data.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    const basePct = (row.baseRate * 100).toFixed(1);
+    const locked = row.name === 'HAND';
+
+    tr.innerHTML = `
+      <td>${row.name}</td>
+      <td>${row.nonComp.toLocaleString()}</td>
+      <td>${row.comp.toLocaleString()}</td>
+      <td>${row.total.toLocaleString()}</td>
+      <td>
+        <div class="rate-cell">
+          <div class="rate-bar-bg"><div class="rate-bar-fill" id="bar-base-${i}" style="width:${basePct}%"></div></div>
+          <span>${basePct}%</span>
+        </div>
+      </td>
+      <td>
+        ${locked ? `<span style="color:var(--muted);font-family:var(--mono);font-size:0.75rem">100% (n=3)</span>` : `
+        <div class="target-cell">
+          <input type="range" id="slider-${i}"
+            min="${Math.floor(row.baseRate * 100)}"
+            max="100"
+            step="0.5"
+            value="${Math.floor(row.baseRate * 100)}"
+            oninput="onSlider(${i}, this.value)"
+          />
+          <span class="slider-val" id="sliderval-${i}">${Math.floor(row.baseRate * 100).toFixed(1)}%</span>
+        </div>`}
+      </td>
+      <td id="proj-passes-${i}" style="color:var(--text)">
+        ${row.comp.toLocaleString()}
+      </td>
+      <td id="delta-cell-${i}" class="delta-zero">—</td>
+    `;
+    tbody.appendChild(tr);
+    if (!locked) sliders[i] = document.getElementById(`slider-${i}`);
+  });
+}
+
+function onSlider(i, val) {
+  const pct = parseFloat(val);
+  data[i].targetRate = pct / 100;
+  document.getElementById(`sliderval-${i}`).textContent = pct.toFixed(1) + '%';
+  updateAll();
+}
+
+function updateAll() {
+  let totalProjComp = 0;
+  let totalNewPasses = 0;
+  let addressable = 0;
+  const movers = [];
+
+  data.forEach((row, i) => {
+    const projComp = Math.round(row.total * row.targetRate);
+    const delta = projComp - row.comp;
+
+    totalProjComp += projComp;
+    if (delta > 0) {
+      totalNewPasses += delta;
+      addressable += row.nonComp;
+      movers.push({ name: row.name, delta });
+    }
+
+    // update cells
+    const projCell = document.getElementById(`proj-passes-${i}`);
+    const deltaCell = document.getElementById(`delta-cell-${i}`);
+    const tr = projCell?.closest('tr');
+
+    if (projCell) projCell.textContent = projComp.toLocaleString();
+
+    if (deltaCell) {
+      if (delta > 0) {
+        deltaCell.textContent = '+' + delta.toLocaleString();
+        deltaCell.className = 'delta-pos';
+        tr?.classList.add('changed');
+      } else if (delta < 0) {
+        deltaCell.textContent = delta.toLocaleString();
+        deltaCell.className = 'delta-neg';
+        tr?.classList.remove('changed');
+      } else {
+        deltaCell.textContent = '—';
+        deltaCell.className = 'delta-zero';
+        tr?.classList.remove('changed');
+      }
+    }
+  });
+
+  const projRate = totalProjComp / GRAND_TOTAL;
+  const deltaRate = projRate - BASE_RATE;
+  const deltaRatePP = (deltaRate * 100);
+
+  // KPI strip
+  document.getElementById('kpi-proj-comp').textContent = totalProjComp.toLocaleString();
+  document.getElementById('kpi-delta').textContent = (totalNewPasses >= 0 ? '+' : '') + totalNewPasses.toLocaleString();
+  document.getElementById('kpi-rate-delta').textContent = (deltaRatePP >= 0 ? '+' : '') + deltaRatePP.toFixed(2) + '%';
+  document.getElementById('kpi-rate-sub').textContent =
+    (BASE_RATE * 100).toFixed(2) + '% → ' + (projRate * 100).toFixed(2) + '%';
+
+  // Summary panel
+  document.getElementById('sum-proj-rate').textContent = (projRate * 100).toFixed(2) + '%';
+  document.getElementById('sum-delta-rate').textContent =
+    (deltaRatePP >= 0 ? '+' : '') + deltaRatePP.toFixed(2) + ' pp';
+  document.getElementById('sum-addressable').textContent = addressable.toLocaleString();
+  document.getElementById('sum-new-passes').textContent = '+' + totalNewPasses.toLocaleString();
+
+  // Top movers
+  movers.sort((a, b) => b.delta - a.delta);
+  const tg = document.getElementById('top-gainers');
+  if (movers.length === 0) {
+    tg.innerHTML = `<div style="color:var(--muted);font-size:0.75rem;font-family:var(--mono)">Move sliders to see top contributors</div>`;
+  } else {
+    tg.innerHTML = movers.slice(0, 6).map(m => `
+      <div class="gainer-row">
+        <span class="gainer-name">${m.name}</span>
+        <span class="gainer-val">+${m.delta.toLocaleString()}</span>
+      </div>
+    `).join('');
+  }
+}
+
+function resetAll() {
+  data.forEach((row, i) => {
+    row.targetRate = row.baseRate;
+    const slider = document.getElementById(`slider-${i}`);
+    const valSpan = document.getElementById(`sliderval-${i}`);
+    if (slider) slider.value = Math.floor(row.baseRate * 100);
+    if (valSpan) valSpan.textContent = (row.baseRate * 100).toFixed(1) + '%';
+  });
+  updateAll();
+}
+
+buildTable();
+updateAll();
+</script>
+</body>
+</html>
