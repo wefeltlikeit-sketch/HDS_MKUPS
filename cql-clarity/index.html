@@ -24,6 +24,21 @@
         .src-line.flash { background: rgba(20,184,166,.18); transition: background 1.2s ease; }
         .card-collapsed .card-body { display: none; }
         pre.bool { white-space: pre-wrap; }
+        /* Spec-document preview rendered as a light "paper" inside the dark app */
+        .spec-paper { background:#fff; color:#1a1a1a; }
+        .spec-paper h2 { font-size:1.15rem; border-bottom:1px solid #e5e7eb; padding-bottom:.25rem; margin:1.5rem 0 .5rem; font-weight:600; }
+        .spec-paper h3 { font-size:1rem; margin:1.1rem 0 .3rem; font-weight:600; }
+        .spec-paper p { margin:.5rem 0; }
+        .spec-paper ul { margin:.4rem 0 .8rem; padding-left:1.3rem; list-style:disc; }
+        .spec-paper ul.tree { list-style:none; padding-left:0; }
+        .spec-paper ul.tree li { margin:.15rem 0; }
+        .spec-paper pre.code { background:#f6f8fa; border:1px solid #e5e7eb; border-radius:6px; padding:.7rem; overflow-x:auto; font-size:.8rem; font-family:ui-monospace,monospace; white-space:pre-wrap; }
+        .spec-paper table { border-collapse:collapse; width:100%; font-size:.82rem; margin:.5rem 0; }
+        .spec-paper th, .spec-paper td { border:1px solid #ddd; padding:.35rem .55rem; text-align:left; vertical-align:top; }
+        .spec-paper th { background:#f6f8fa; }
+        .spec-paper .tablewrap { overflow-x:auto; }
+        .spec-paper .callout { background:#fafafa; border-left:4px solid #999; border-radius:0 6px 6px 0; padding:.55rem .85rem; margin:.55rem 0; font-size:.88rem; }
+        .spec-paper .callout-title { font-weight:600; margin-bottom:.15rem; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200">
@@ -120,6 +135,7 @@
                         <!-- Tabs -->
                         <div class="flex flex-wrap gap-x-4 gap-y-1 border-b border-slate-800 mb-4 text-sm">
                             <button class="tab-btn tab-active py-2 border-b-2 border-transparent" data-tab="summary" onclick="showTab('summary')">Summary</button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-teal-400 font-medium" data-tab="specdocs" onclick="showTab('specdocs')">Spec docs ✦</button>
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="definitions" onclick="showTab('definitions')">Definitions</button>
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="dependencies" onclick="showTab('dependencies')">Dependencies</button>
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="population" onclick="showTab('population')">Population</button>
@@ -128,6 +144,7 @@
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="validation" onclick="showTab('validation')">Validation</button>
                         </div>
                         <div id="tab-summary" class="tab-panel"></div>
+                        <div id="tab-specdocs" class="tab-panel hidden"></div>
                         <div id="tab-definitions" class="tab-panel hidden"></div>
                         <div id="tab-dependencies" class="tab-panel hidden"></div>
                         <div id="tab-population" class="tab-panel hidden"></div>
@@ -243,6 +260,7 @@
     </footer>
 
     <script src="analyzer.js"></script>
+    <script src="spec.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

@@ -72,6 +72,7 @@
     renderSourceView(lastAnalysis.rawCode);
     renderConfidence(lastAnalysis);
     renderSummaryTab(lastAnalysis);
+    renderSpecTab(lastAnalysis);
     renderDefinitionsTab(lastAnalysis);
     renderDependenciesTab(lastAnalysis);
     renderPopulationTab(lastAnalysis);
@@ -155,6 +156,53 @@
     html += `</div>`;
     $('tab-summary').innerHTML = html;
   }
+
+  // ------------------------------------------------------------- spec docs
+  let specMode = 'business';
+  function renderSpecTab(a) {
+    const spec = CQLSpec.buildSpec(a, specMode);
+    const btn = (mode, label) =>
+      `<button onclick="setSpecMode('${mode}')" class="text-xs px-3 py-1.5 rounded-2xl ${specMode === mode ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${label}</button>`;
+    $('tab-specdocs').innerHTML =
+      `<div class="mb-3">
+        <div class="text-xs text-slate-400 mb-2">Generate an audience-tuned spec from this analysis. Switch modes, then copy, download, or open a printable version.</div>
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex gap-1 p-1 bg-slate-900 border border-slate-700 rounded-2xl">
+            ${btn('business', 'Business spec')}${btn('engineer', 'Engineering brief')}
+          </div>
+          <div class="flex-1"></div>
+          <button onclick="copySpecMarkdown()" class="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-2xl">Copy Markdown</button>
+          <button onclick="downloadSpecMd()" class="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-2xl">Download .md</button>
+          <button onclick="openSpecPrint()" class="text-xs px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl">Open printable / PDF</button>
+        </div>
+      </div>
+      <div class="spec-paper rounded-2xl p-6 max-h-[70vh] overflow-auto">
+        <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:.15rem">${esc(spec.title)}</h1>
+        <div style="color:#666;margin-bottom:1rem">${esc(spec.subtitle)}</div>
+        ${CQLSpec.specToHTML(spec)}
+      </div>`;
+  }
+  window.setSpecMode = (m) => { specMode = m; if (lastAnalysis) renderSpecTab(lastAnalysis); };
+  window.copySpecMarkdown = () => {
+    if (!lastAnalysis) return;
+    const md = CQLSpec.specToMarkdown(CQLSpec.buildSpec(lastAnalysis, specMode));
+    navigator.clipboard.writeText(md).then(() => toast('Spec Markdown copied')).catch(() => toast('Copy failed'));
+  };
+  window.downloadSpecMd = () => {
+    if (!lastAnalysis) return;
+    const spec = CQLSpec.buildSpec(lastAnalysis, specMode);
+    const base = (lastAnalysis.library.name || 'cql') + '-' + specMode + '-spec';
+    download(base + '.md', CQLSpec.specToMarkdown(spec), 'text/markdown');
+  };
+  window.openSpecPrint = () => {
+    if (!lastAnalysis) return;
+    const doc = CQLSpec.toStandaloneHTML(CQLSpec.buildSpec(lastAnalysis, specMode));
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if (!w) { download('spec.html', doc, 'text/html'); toast('Pop-up blocked — downloaded instead'); }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
 
   // ------------------------------------------------------------- definitions
   function roleBadge(role) {
