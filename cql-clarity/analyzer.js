@@ -305,6 +305,26 @@
     return found;
   }
 
+  // Curated FHIR-ish attributes we surface in the data-requirements matrix.
+  const KNOWN_ATTRIBUTES = [
+    'onset', 'abatement', 'clinicalStatus', 'verificationStatus', 'effective',
+    'effectiveDateTime', 'effectivePeriod', 'value', 'authoredOn', 'performed',
+    'performedPeriod', 'period', 'status', 'code', 'component', 'gender',
+    'birthDate', 'recordedDate', 'issued', 'category', 'severity', 'dosage',
+    'medication', 'reasonCode', 'intent',
+  ];
+
+  /** Distinct known FHIR attributes accessed via `.attribute` in the expression. */
+  function extractAttributes(scanExpr) {
+    const found = [];
+    for (const attr of KNOWN_ATTRIBUTES) {
+      if (new RegExp('\\.' + attr + '\\b').test(scanExpr) && found.indexOf(attr) === -1) {
+        found.push(attr);
+      }
+    }
+    return found;
+  }
+
   const TIMING_PHRASES = [
     'during', 'overlaps', 'starts before start', 'ends after end',
     'starts during', 'ends during', 'same day as', 'same year as',
@@ -721,6 +741,7 @@
         references: refInfo.references,
         unresolvedReferences: refInfo.unresolved,
         retrieves: retrieves,
+        attributesRead: extractAttributes(def.scanExpression),
         operators: operators,
         timing: timing,
         temporalWindows: extractTemporalWindows(def),
