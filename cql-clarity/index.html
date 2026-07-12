@@ -96,10 +96,11 @@
                 <div class="flex items-end justify-between mb-4">
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">CQL Intent Translator</h1>
-                        <p class="text-slate-400 text-sm mt-0.5">Paste CQL to see a plain-English breakdown for your business users. This is a structural reader, not a compiler.</p>
+                        <p class="text-slate-400 text-sm mt-0.5">Paste <strong>CQL or ELM (JSON)</strong> — the tool detects which and produces a plain-English breakdown for your business users. ELM input is parsed exactly (no heuristics).</p>
                     </div>
                     <div class="flex gap-x-2">
-                        <button onclick="loadExample(0)" class="text-xs px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Load OMW example</button>
+                        <button onclick="loadExample(0)" class="text-xs px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Load CQL example</button>
+                        <button onclick="loadElmExample()" class="text-xs px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Load ELM example</button>
                         <button onclick="document.getElementById('cql-file-input').click()" class="text-xs px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Upload</button>
                         <button onclick="clearTranslator()" class="text-xs px-3 py-2 border border-slate-700 hover:bg-slate-800 rounded-2xl">Clear</button>
                         <input type="file" id="cql-file-input" accept=".cql,.txt" class="hidden" onchange="handleFileUpload(event)">
@@ -108,10 +109,10 @@
 
                 <!-- Input -->
                 <div class="bg-slate-900 border border-slate-700 rounded-3xl p-1 mb-5">
-                    <div class="px-4 pt-3 pb-1 text-xs uppercase tracking-widest font-semibold text-teal-400">CQL source</div>
+                    <div class="px-4 pt-3 pb-1 text-xs uppercase tracking-widest font-semibold text-teal-400">CQL or ELM source</div>
                     <textarea id="cql-input" rows="10" spellcheck="false"
                         class="w-full bg-slate-950 font-mono text-sm p-4 rounded-3xl border-0 focus:ring-1 focus:ring-teal-600 resize-y outline-none"
-                        placeholder="Paste your CQL here…&#10;&#10;library MyMeasure version '1.0'&#10;using FHIR version '4.0.1'&#10;context Patient&#10;&#10;define &quot;Initial Population&quot;: ..."></textarea>
+                        placeholder="Paste CQL or ELM JSON here…&#10;&#10;library MyMeasure version '1.0'&#10;using FHIR version '4.0.1'&#10;context Patient&#10;&#10;define &quot;Initial Population&quot;: ...&#10;&#10;— or paste compiled ELM: { &quot;library&quot;: { &quot;statements&quot;: ... } }"></textarea>
                     <div class="px-4 pb-3 flex justify-end">
                         <button onclick="translateCQL()" class="px-7 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-3xl text-sm">Translate intent</button>
                     </div>
@@ -260,6 +261,7 @@
     </footer>
 
     <script src="analyzer.js"></script>
+    <script src="elm.js"></script>
     <script src="spec.js"></script>
     <script src="app.js"></script>
 </body>
