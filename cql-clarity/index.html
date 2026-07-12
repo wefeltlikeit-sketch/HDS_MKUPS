@@ -141,6 +141,7 @@
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="dependencies" onclick="showTab('dependencies')">Dependencies</button>
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="population" onclick="showTab('population')">Population</button>
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="timing" onclick="showTab('timing')">Timing</button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="provenance" onclick="showTab('provenance')">Provenance <span id="coverage-pill" class="ml-1 text-[10px] px-1.5 py-0.5 bg-slate-800 rounded-full"></span></button>
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="flags" onclick="showTab('flags')">Review flags <span id="flag-count" class="ml-1 text-[10px] px-1.5 py-0.5 bg-slate-800 rounded-full"></span></button>
                             <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="validation" onclick="showTab('validation')">Validation</button>
                         </div>
@@ -150,6 +151,7 @@
                         <div id="tab-dependencies" class="tab-panel hidden"></div>
                         <div id="tab-population" class="tab-panel hidden"></div>
                         <div id="tab-timing" class="tab-panel hidden"></div>
+                        <div id="tab-provenance" class="tab-panel hidden"></div>
                         <div id="tab-flags" class="tab-panel hidden"></div>
                         <div id="tab-validation" class="tab-panel hidden"></div>
 
@@ -263,6 +265,7 @@
     <script src="analyzer.js"></script>
     <script src="elm.js"></script>
     <script src="spec.js"></script>
+    <script src="provenance.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

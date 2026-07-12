@@ -88,6 +88,7 @@
     renderDependenciesTab(lastAnalysis);
     renderPopulationTab(lastAnalysis);
     renderTimingTab(lastAnalysis);
+    renderProvenanceTab(lastAnalysis);
     renderFlagsTab(lastAnalysis);
     renderValidationTab(lastAnalysis);
     showTab('summary');
@@ -354,6 +355,68 @@
     }
     if (!html) html = `<div class="text-sm text-slate-400 p-4 bg-slate-900 rounded-2xl border border-slate-700">No temporal relationships were detected.</div>`;
     $('tab-timing').innerHTML = html;
+  }
+
+  // ------------------------------------------------------------- provenance
+  const CAT_COLOR = { Detected: 'emerald', Inferred: 'amber', 'Not determined': 'slate' };
+  function catBadge(cat) {
+    const c = CAT_COLOR[cat] || 'slate';
+    return `<span class="text-[10px] px-2 py-0.5 rounded-full bg-${c}-900/40 text-${c}-300 whitespace-nowrap">${esc(cat)}</span>`;
+  }
+  function renderProvenanceTab(a) {
+    const p = CQLProvenance.buildProvenance(a);
+    const cov = p.coverage;
+    const pct = cov.percent;
+    const barColor = pct === 100 ? 'emerald' : pct >= 80 ? 'teal' : 'amber';
+    $('coverage-pill').textContent = pct + '%';
+
+    let html = `<div class="text-xs text-slate-400 mb-3">Every claim below links to the exact source line that justifies it. Coverage shows how much of the source the tool actually accounted for — anything it could not is listed explicitly.</div>`;
+
+    // Coverage meter
+    html += `<div class="p-4 bg-slate-900 border border-slate-700 rounded-2xl mb-4">
+      <div class="flex items-baseline justify-between mb-1">
+        <span class="text-sm font-medium">Line coverage</span>
+        <span class="text-lg font-semibold text-${barColor}-300">${pct}%</span>
+      </div>
+      <div class="h-2 bg-slate-800 rounded-full overflow-hidden mb-2"><div class="h-2 bg-${barColor}-500" style="width:${pct}%"></div></div>
+      <div class="text-xs text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
+        <span>${esc(cov.attributed)} of ${esc(cov.nonBlank)} non-blank lines accounted for</span>
+        <span>· ${esc(cov.definitionLines)} in definitions</span>
+        <span>· ${esc(cov.headerLines)} header</span>
+        <span>· ${esc(cov.commentLines)} comment</span>
+      </div>
+      <div class="text-xs text-slate-500 mt-2">${esc(p.counts.total)} claims · ${esc(p.counts.detected)} detected · ${esc(p.counts.inferred)} inferred · every claim source-linked</div>
+    </div>`;
+
+    // Unaccounted lines
+    if (cov.unaccounted.length) {
+      html += `<div class="p-4 bg-amber-900/10 border border-amber-700/40 rounded-2xl mb-4">
+        <div class="text-amber-300 font-semibold text-sm mb-1">Not accounted for (${cov.unaccounted.length})</div>
+        <div class="text-xs text-slate-400 mb-2">These source lines were not attributed to a definition, header, or comment. Review them directly.</div>
+        <ul class="text-sm space-y-0.5">${cov.unaccounted.map(u =>
+          `<li><button onclick="highlightLine(${u.line})" class="text-teal-300 hover:underline">line ${u.line}</button> <span class="font-mono text-xs text-slate-400">${esc(u.text)}</span></li>`
+        ).join('')}</ul></div>`;
+    }
+
+    // Claims grouped by definition
+    const byDef = {};
+    p.claims.forEach(c => { (byDef[c.definition] = byDef[c.definition] || []).push(c); });
+    html += Object.keys(byDef).map(name => {
+      const rows = byDef[name].map(c =>
+        `<div class="flex items-start gap-x-2 py-1 border-t border-slate-800 first:border-0">
+          ${catBadge(c.category)}
+          <div class="flex-1 min-w-0">
+            <div class="text-sm">${esc(c.text)}</div>
+            <div class="text-[11px] text-slate-500">evidence: <span class="font-mono">${esc(c.evidence)}</span></div>
+          </div>
+          <button onclick="highlightLine(${c.line})" class="text-[11px] text-teal-300 hover:underline whitespace-nowrap">line ${c.line}</button>
+        </div>`
+      ).join('');
+      return `<div class="mb-3 bg-slate-900 border border-slate-700 rounded-2xl p-4">
+        <div class="font-semibold text-teal-200 mb-1">${esc(name)}</div>${rows}</div>`;
+    }).join('');
+
+    $('tab-provenance').innerHTML = html;
   }
 
   // ------------------------------------------------------------- flags
