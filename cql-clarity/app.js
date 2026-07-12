@@ -62,11 +62,22 @@
   }
 
   // ============================================================== TRANSLATE
+  function analyzeInput(code) {
+    const t = code.trim();
+    if (t[0] === '{' || t[0] === '[') {
+      try {
+        const obj = JSON.parse(t);
+        if (window.CQLElm && CQLElm.looksLikeELM(obj)) return CQLElm.analyzeELM(obj);
+      } catch (e) { /* not valid JSON — treat as CQL */ }
+    }
+    return CQLAnalyzer.analyze(code);
+  }
+
   function translateCQL() {
     const code = $('cql-input').value;
-    if (!code.trim()) { toast('Paste some CQL first.'); return; }
+    if (!code.trim()) { toast('Paste some CQL or ELM first.'); return; }
     lastCode = code;
-    lastAnalysis = CQLAnalyzer.analyze(code);
+    lastAnalysis = analyzeInput(code);
     bumpStat('translations');
     $('results').classList.remove('hidden');
     renderSourceView(lastAnalysis.rawCode);
@@ -118,10 +129,13 @@
   const CONF_COLOR = { High: 'emerald', Moderate: 'amber', Low: 'rose' };
   function renderConfidence(a) {
     const c = CONF_COLOR[a.summary.confidence] || 'slate';
+    const isElm = a.sourceKind === 'ELM';
+    const srcColor = isElm ? 'violet' : 'sky';
     $('confidence-bar').innerHTML =
-      `<div class="p-3 rounded-2xl bg-slate-900 border border-slate-700 flex items-start gap-x-3">
+      `<div class="p-3 rounded-2xl bg-slate-900 border border-slate-700 flex items-start gap-x-3 flex-wrap">
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-${srcColor}-900/40 text-${srcColor}-300 whitespace-nowrap" title="${isElm ? 'Parsed from compiled ELM — exact structure' : 'Parsed from CQL text — structural heuristics'}">Input: ${esc(a.sourceKind || 'CQL')}</span>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-${c}-900/40 text-${c}-300 whitespace-nowrap">Confidence: ${esc(a.summary.confidence)}</span>
-        <span class="text-xs text-slate-400 leading-snug">${esc(a.summary.confidenceReason)}</span>
+        <span class="text-xs text-slate-400 leading-snug flex-1 min-w-[200px]">${esc(a.summary.confidenceReason)}</span>
       </div>`;
     $('flag-count').textContent = a.reviewFlags.length;
   }
@@ -540,6 +554,11 @@
     navigateTo('translate');
     translateCQL();
   };
+  window.loadElmExample = () => {
+    $('cql-input').value = JSON.stringify(ELM_EXAMPLE, null, 2);
+    navigateTo('translate');
+    translateCQL();
+  };
 
   // ============================================================== CONTENT DATA
   const EXAMPLES = [
@@ -609,6 +628,54 @@ define "Hospice Exclusion":
 define "Denominator Exclusions":
   "Hospice Exclusion"` },
   ];
+
+  // A compact but valid ELM library (compiled OMW) for the "Load ELM example".
+  const ELM_EXAMPLE = (function () {
+    const lit = (v, t) => ({ type: 'Literal', valueType: t || '{urn:hl7-org:elm-types:r1}Integer', value: v });
+    const prop = (p, s) => ({ type: 'Property', path: p, scope: s });
+    const vs = (n) => ({ type: 'ValueSetRef', name: n });
+    const retr = (rt, v) => ({ type: 'Retrieve', dataType: '{http://hl7.org/fhir}' + rt, codes: vs(v) });
+    const ref = (n) => ({ type: 'ExpressionRef', name: n });
+    const q = (al, rt, v, w) => ({ type: 'Query', source: [{ alias: al, expression: retr(rt, v) }], where: w });
+    const inIv = (a, b) => ({ type: 'IncludedIn', operand: [a, b] });
+    const win = { type: 'Interval',
+      low: { type: 'Start', operand: prop('onset', 'IF') },
+      high: { type: 'Add', operand: [{ type: 'Start', operand: prop('onset', 'IF') }, { type: 'Quantity', value: 6, unit: 'month' }] } };
+    return { library: {
+      identifier: { id: 'OMW_FractureManagement', version: '1.0.0' },
+      schemaIdentifier: { id: 'urn:hl7-org:elm', version: 'r1' },
+      usings: { def: [
+        { localIdentifier: 'System', uri: 'urn:hl7-org:elm-types:r1' },
+        { localIdentifier: 'FHIR', uri: 'http://hl7.org/fhir', version: '4.0.1' } ] },
+      includes: { def: [{ localIdentifier: 'FHIRHelpers', path: 'FHIRHelpers', version: '4.0.1' }] },
+      parameters: { def: [{ name: 'MeasurementPeriod' }] },
+      valueSets: { def: [
+        { name: 'Fragility Fracture', id: 'urn:oid:2.16.840.1.113883.3.464.1004.1' },
+        { name: 'Bone Mineral Density Test', id: 'urn:oid:2.16.840.1.113883.3.464.1004.2' },
+        { name: 'Osteoporosis Medication', id: 'urn:oid:2.16.840.1.113883.3.464.1004.3' } ] },
+      contexts: { def: [{ name: 'Patient' }] },
+      statements: { def: [
+        { name: 'Patient', context: 'Patient', expression: { type: 'SingletonFrom', operand: retr('Patient', '') } },
+        { name: 'Initial Population', context: 'Patient', locator: '10:1-12:34',
+          annotation: [{ type: 'Annotation', s: { s: [{ value: ['define "Initial Population":\n  AgeInYearsAt(start of MeasurementPeriod) in Interval[67, 85]\n    and Patient.gender = \'female\''] }] } }],
+          expression: { type: 'And', operand: [
+            { type: 'In', operand: [{ type: 'CalculateAgeAt', operand: [] }, { type: 'Interval', low: lit(67), high: lit(85) }] },
+            { type: 'Equal', operand: [prop('gender', 'Patient'), lit('female', '{urn:hl7-org:elm-types:r1}String')] } ] } },
+        { name: 'Index Fracture', context: 'Patient', locator: '14:1-17:38',
+          annotation: [{ type: 'Annotation', s: { s: [{ value: ['define "Index Fracture":\n  [Condition: "Fragility Fracture"] F\n    where F.clinicalStatus ~ \'active\'\n      and F.onset during MeasurementPeriod'] }] } }],
+          expression: q('F', 'Condition', 'Fragility Fracture', { type: 'And', operand: [
+            { type: 'Equivalent', operand: [prop('clinicalStatus', 'F'), lit('active', '{urn:hl7-org:elm-types:r1}String')] },
+            inIv(prop('onset', 'F'), { type: 'ParameterRef', name: 'MeasurementPeriod' }) ] }) },
+        { name: 'BMD Test After Fracture', context: 'Patient', locator: '19:1-23:4',
+          annotation: [{ type: 'Annotation', s: { s: [{ value: ['define "BMD Test After Fracture":\n  exists ([Observation: "Bone Mineral Density Test"] B\n    where B.effective during Interval[start of "Index Fracture".onset, start of "Index Fracture".onset + 6 months])'] }] } }],
+          expression: { type: 'Exists', operand: q('B', 'Observation', 'Bone Mineral Density Test', inIv(prop('effective', 'B'), win)) } },
+        { name: 'Osteoporosis Medication', context: 'Patient', locator: '25:1-29:4',
+          annotation: [{ type: 'Annotation', s: { s: [{ value: ['define "Osteoporosis Medication":\n  exists ([MedicationRequest: "Osteoporosis Medication"] M\n    where M.authoredOn during Interval[start of "Index Fracture".onset, start of "Index Fracture".onset + 6 months])'] }] } }],
+          expression: { type: 'Exists', operand: q('M', 'MedicationRequest', 'Osteoporosis Medication', inIv(prop('authoredOn', 'M'), win)) } },
+        { name: 'Numerator', context: 'Patient', locator: '31:1-32:56',
+          annotation: [{ type: 'Annotation', s: { s: [{ value: ['define "Numerator":\n  "BMD Test After Fracture" or "Osteoporosis Medication"'] }] } }],
+          expression: { type: 'Or', operand: [ref('BMD Test After Fracture'), ref('Osteoporosis Medication')] } } ] } } };
+  })();
 
   function renderExamples() {
     $('examples-grid').innerHTML = EXAMPLES.map(ex =>

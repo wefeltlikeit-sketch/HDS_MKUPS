@@ -710,11 +710,6 @@
     const rawDefs = extractDefinitions(code, scanCode);
     const symbolTable = new Set(rawDefs.map(d => d.name));
 
-    const dependencyGraph = {};
-    const allUnresolved = [];
-    const temporalFlows = [];
-    let reviewFlags = [];
-
     const definitions = rawDefs.map(def => {
       const retrieves = extractRetrieves(def.scanExpression);
       const operators = extractOperators(def.scanExpression);
@@ -723,13 +718,6 @@
       const refInfo = analyzeReferences(def, symbolTable);
       const flags = def.kind === 'function' ? [] : buildReviewFlags(def, retrieves);
       const booleanTree = def.kind === 'function' ? null : parseBoolean(def.expression);
-
-      dependencyGraph[def.name] = refInfo.references;
-      refInfo.unresolved.forEach(u => {
-        allUnresolved.push({ from: def.name, name: u, line: def.startLine });
-      });
-      extractTemporalWindows(def).forEach(w => temporalFlows.push(w));
-      reviewFlags = reviewFlags.concat(flags);
 
       return {
         name: def.name,
@@ -755,42 +743,65 @@
       };
     });
 
-    // Unresolved-reference review flags.
+    return assemble(definitions, {
+      library: library, includes: includes, parameters: parameters,
+      terminology: terminology, rawCode: code,
+    }, {});
+  }
+
+  /**
+   * Assemble a full analysis object from a finished `definitions` array plus
+   * library metadata. Shared by the CQL path (analyze) and the ELM path
+   * (elm.js) so both render identically. `opts` can override confidence,
+   * summary text, and validation for the ELM path.
+   */
+  function assemble(definitions, meta, opts) {
+    opts = opts || {};
+    const library = meta.library;
+    const terminology = meta.terminology || { valueSets: [] };
+    const code = meta.rawCode || '';
+
+    const dependencyGraph = {};
+    const allUnresolved = [];
+    const temporalFlows = [];
+    let reviewFlags = [];
+
+    definitions.forEach(def => {
+      dependencyGraph[def.name] = def.references || [];
+      (def.unresolvedReferences || []).forEach(u => {
+        allUnresolved.push({ from: def.name, name: u, line: def.sourceStartLine });
+      });
+      (def.temporalWindows || []).forEach(w => temporalFlows.push(w));
+      reviewFlags = reviewFlags.concat(def.reviewFlags || []);
+    });
+
     allUnresolved.forEach(u => {
       reviewFlags.push({
-        severity: 'Review',
-        definition: u.from,
-        line: u.line,
+        severity: 'Review', definition: u.from, line: u.line,
         message: 'Unresolved reference: "' + u.name + '"',
-        why: 'This name is referenced but not defined in the pasted CQL. It may live in an included library, or the name may be mistyped.',
+        why: 'This name is referenced but not defined in the pasted source. It may live in an included library, or the name may be mistyped.',
       });
     });
 
-    // Circular-dependency flags.
     const cycles = detectCycles(dependencyGraph);
     cycles.forEach(cycle => {
       reviewFlags.push({
-        severity: 'High',
-        definition: cycle[0],
+        severity: 'High', definition: cycle[0],
         line: (definitions.find(d => d.name === cycle[0]) || {}).sourceStartLine || 0,
         message: 'Circular dependency: ' + cycle.join(' → '),
         why: 'These definitions reference each other in a loop, which cannot be evaluated.',
       });
     });
 
-    // Value-set validation reminder (once, if any terminology is used).
-    const usesValueSets = definitions.some(d => d.valueSets.length) || terminology.valueSets.length;
+    const usesValueSets = definitions.some(d => (d.valueSets || []).length) || (terminology.valueSets || []).length;
     if (usesValueSets) {
       reviewFlags.push({
-        severity: 'Info',
-        definition: '(library)',
-        line: 0,
+        severity: 'Info', definition: '(library)', line: 0,
         message: 'Value-set membership is asserted, not validated',
         why: 'This tool cannot confirm the codes inside each value set. Value-set correctness must be verified against your terminology service.',
       });
     }
 
-    // Population flow.
     const rolesPresent = definitions.filter(d => d.populationRole);
     const orderedRoles = POPULATION_ORDER
       .map(r => rolesPresent.find(d => d.populationRole === r))
@@ -802,15 +813,14 @@
       inferred: true,
     };
 
-    const confidence = computeConfidence(library, definitions, allUnresolved.length);
-
+    const confidence = opts.confidence || computeConfidence(library, definitions, allUnresolved.length);
     const summary = {
-      text: buildSummaryText(library, definitions, code),
+      text: opts.summaryText || buildSummaryText(library, definitions, code),
       confidence: confidence.level,
       confidenceReason: confidence.reason,
     };
 
-    const validation = {
+    const validation = Object.assign({
       structure: definitions.length ? 'Passed' : 'No definitions found',
       syntax: 'Not evaluated',
       model: library.model ? library.model + ' ' + (library.modelVersion || '') : 'Not declared',
@@ -819,12 +829,12 @@
       elmTranslation: 'Not run',
       execution: 'Not run',
       specificationCompliance: 'Not evaluated',
-    };
+    }, opts.validation || {});
 
     return {
       library: library,
-      includes: includes,
-      parameters: parameters,
+      includes: meta.includes || [],
+      parameters: meta.parameters || [],
       terminology: terminology,
       definitions: definitions,
       unresolvedReferences: allUnresolved,
@@ -837,6 +847,7 @@
       summary: summary,
       validation: validation,
       rawCode: code,
+      sourceKind: opts.sourceKind || 'CQL',
     };
   }
 
@@ -872,7 +883,10 @@
 
   return {
     analyze: analyze,
+    assemble: assemble,
     escapeHTML: escapeHTML,
+    booleanToLines: booleanToLines,
+    populationRole: populationRole,
     // Exposed for unit testing:
     _internals: {
       stripForScan: stripForScan,
@@ -885,6 +899,7 @@
       lineAt: lineAt,
       detectCycles: detectCycles,
       populationRole: populationRole,
+      themeSentence: themeSentence,
     },
   };
 });
