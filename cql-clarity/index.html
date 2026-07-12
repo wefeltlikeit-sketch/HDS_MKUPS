@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CQL Clarity • Translate • Learn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .nav-active { background-color: #0f766e; color: #fff; }
+        .nav-item { transition: background-color .12s ease; }
+        .nav-item:hover:not(.nav-active) { background-color: rgba(148,163,184,.08); }
+        .tab-btn.tab-active { color: #5eead4; border-color: #14b8a6; }
+        /* Line-numbered source view */
+        .src-view { counter-reset: none; }
+        .src-line { display: flex; align-items: flex-start; }
+        .src-num { width: 3rem; flex-shrink: 0; text-align: right; padding-right: .75rem;
+                   color: #475569; user-select: none; }
+        .src-text { white-space: pre-wrap; word-break: break-word; }
+        .src-line.flash { background: rgba(20,184,166,.18); transition: background 1.2s ease; }
+        .card-collapsed .card-body { display: none; }
+        pre.bool { white-space: pre-wrap; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+    <!-- Top bar -->
+    <nav class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-x-2.5">
+                <div class="w-9 h-9 bg-teal-600 rounded-2xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0018 4.5H6.75A2.25 2.25 0 004.5 6.75v10.5A2.25 2.25 0 006.75 18H9m3.75-3.75v3.75"/></svg>
+                </div>
+                <div>
+                    <span class="font-semibold text-xl tracking-tight">CQL Clarity</span>
+                    <span class="text-[10px] font-mono text-teal-500 tracking-[1.5px] block -mt-1">CLINICAL QUALITY LANGUAGE</span>
+                </div>
+            </div>
+            <div class="text-xs text-slate-500 hidden md:block">Deterministic structural analysis · runs entirely in your browser</div>
+        </div>
+    </nav>
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        <!-- Sidebar -->
+        <aside class="w-60 bg-slate-900 border-r border-slate-800 min-h-[calc(100vh-57px)] p-3 hidden lg:block">
+            <div class="text-[11px] font-semibold tracking-widest text-slate-500 px-3 mb-2">WORKSPACE</div>
+            <div id="nav-translate" onclick="navigateTo('translate')" class="nav-item nav-active flex items-center gap-x-3 px-3 py-2.5 rounded-2xl cursor-pointer mb-0.5">
+                <span class="font-medium text-sm">Translate</span>
+            </div>
+            <div id="nav-library" onclick="navigateTo('library')" class="nav-item flex items-center gap-x-3 px-3 py-2.5 rounded-2xl cursor-pointer mb-0.5">
+                <span class="font-medium text-sm">My Library</span>
+            </div>
+            <div id="nav-examples" onclick="navigateTo('examples')" class="nav-item flex items-center gap-x-3 px-3 py-2.5 rounded-2xl cursor-pointer mb-0.5">
+                <span class="font-medium text-sm">Examples</span>
+            </div>
+            <div class="text-[11px] font-semibold tracking-widest text-slate-500 px-3 mt-4 mb-2">LEARN</div>
+            <div id="nav-learn" onclick="navigateTo('learn')" class="nav-item flex items-center gap-x-3 px-3 py-2.5 rounded-2xl cursor-pointer mb-0.5">
+                <span class="font-medium text-sm">Lessons</span>
+            </div>
+            <div id="nav-reference" onclick="navigateTo('reference')" class="nav-item flex items-center gap-x-3 px-3 py-2.5 rounded-2xl cursor-pointer mb-0.5">
+                <span class="font-medium text-sm">Reference</span>
+            </div>
+            <div id="nav-simulator" onclick="navigateTo('simulator')" class="nav-item flex items-center gap-x-3 px-3 py-2.5 rounded-2xl cursor-pointer mb-0.5">
+                <span class="font-medium text-sm">Guided Simulator</span>
+            </div>
+
+            <div class="px-3 pt-4 mt-3 border-t border-slate-800">
+                <div class="text-[11px] font-semibold tracking-widest text-slate-500 mb-2">YOUR ACTIVITY</div>
+                <div class="text-xs text-slate-400 space-y-1" id="activity-stats"></div>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="flex-1 p-6 min-w-0">
+
+            <!-- ===================== TRANSLATE ===================== -->
+            <section id="section-translate" class="section active">
+                <div class="flex items-end justify-between mb-4">
+                    <div>
+                        <h1 class="text-2xl font-semibold tracking-tight">CQL Intent Translator</h1>
+                        <p class="text-slate-400 text-sm mt-0.5">Paste CQL to see a plain-English breakdown for your business users. This is a structural reader, not a compiler.</p>
+                    </div>
+                    <div class="flex gap-x-2">
+                        <button onclick="loadExample(0)" class="text-xs px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Load OMW example</button>
+                        <button onclick="document.getElementById('cql-file-input').click()" class="text-xs px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Upload</button>
+                        <button onclick="clearTranslator()" class="text-xs px-3 py-2 border border-slate-700 hover:bg-slate-800 rounded-2xl">Clear</button>
+                        <input type="file" id="cql-file-input" accept=".cql,.txt" class="hidden" onchange="handleFileUpload(event)">
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="bg-slate-900 border border-slate-700 rounded-3xl p-1 mb-5">
+                    <div class="px-4 pt-3 pb-1 text-xs uppercase tracking-widest font-semibold text-teal-400">CQL source</div>
+                    <textarea id="cql-input" rows="10" spellcheck="false"
+                        class="w-full bg-slate-950 font-mono text-sm p-4 rounded-3xl border-0 focus:ring-1 focus:ring-teal-600 resize-y outline-none"
+                        placeholder="Paste your CQL here…&#10;&#10;library MyMeasure version '1.0'&#10;using FHIR version '4.0.1'&#10;context Patient&#10;&#10;define &quot;Initial Population&quot;: ..."></textarea>
+                    <div class="px-4 pb-3 flex justify-end">
+                        <button onclick="translateCQL()" class="px-7 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-3xl text-sm">Translate intent</button>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="results" class="hidden grid grid-cols-1 xl:grid-cols-5 gap-5">
+                    <!-- Source view -->
+                    <div class="xl:col-span-2 bg-slate-900 border border-slate-700 rounded-3xl p-4 self-start xl:sticky xl:top-[73px]">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-xs uppercase tracking-widest font-semibold text-slate-400">Source</div>
+                            <div class="text-[10px] text-slate-500">click a finding to highlight its line</div>
+                        </div>
+                        <div id="source-view" class="src-view font-mono text-xs bg-slate-950 rounded-2xl p-3 max-h-[70vh] overflow-auto leading-relaxed"></div>
+                    </div>
+
+                    <!-- Analysis -->
+                    <div class="xl:col-span-3 min-w-0">
+                        <!-- Confidence bar -->
+                        <div id="confidence-bar" class="mb-3"></div>
+                        <!-- Tabs -->
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 border-b border-slate-800 mb-4 text-sm">
+                            <button class="tab-btn tab-active py-2 border-b-2 border-transparent" data-tab="summary" onclick="showTab('summary')">Summary</button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="definitions" onclick="showTab('definitions')">Definitions</button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="dependencies" onclick="showTab('dependencies')">Dependencies</button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="population" onclick="showTab('population')">Population</button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="timing" onclick="showTab('timing')">Timing</button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="flags" onclick="showTab('flags')">Review flags <span id="flag-count" class="ml-1 text-[10px] px-1.5 py-0.5 bg-slate-800 rounded-full"></span></button>
+                            <button class="tab-btn py-2 border-b-2 border-transparent text-slate-400" data-tab="validation" onclick="showTab('validation')">Validation</button>
+                        </div>
+                        <div id="tab-summary" class="tab-panel"></div>
+                        <div id="tab-definitions" class="tab-panel hidden"></div>
+                        <div id="tab-dependencies" class="tab-panel hidden"></div>
+                        <div id="tab-population" class="tab-panel hidden"></div>
+                        <div id="tab-timing" class="tab-panel hidden"></div>
+                        <div id="tab-flags" class="tab-panel hidden"></div>
+                        <div id="tab-validation" class="tab-panel hidden"></div>
+
+                        <!-- Actions -->
+                        <div class="mt-5 flex flex-wrap gap-2">
+                            <button onclick="saveToLibrary()" class="text-xs px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl">Save to My Library</button>
+                            <button onclick="copyExplanation()" class="text-xs px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Copy explanation</button>
+                            <button onclick="exportMarkdown()" class="text-xs px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Export Markdown</button>
+                            <button onclick="exportJSON()" class="text-xs px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Export JSON</button>
+                            <button onclick="copyAIPrompt()" class="text-xs px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl">Copy AI prompt</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================== MY LIBRARY ===================== -->
+            <section id="section-library" class="section">
+                <div class="flex items-end justify-between mb-4">
+                    <div>
+                        <h1 class="text-2xl font-semibold tracking-tight">My Library</h1>
+                        <p class="text-slate-400 text-sm mt-0.5">Saved analyses, stored locally in this browser only.</p>
+                    </div>
+                    <input id="library-search" onkeyup="renderLibrary()" placeholder="Search saved…" class="text-sm bg-slate-900 border border-slate-700 rounded-2xl px-3 py-2 w-56 outline-none focus:border-teal-600">
+                </div>
+                <div id="library-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+            </section>
+
+            <!-- ===================== EXAMPLES ===================== -->
+            <section id="section-examples" class="section">
+                <h1 class="text-2xl font-semibold tracking-tight mb-1">Examples</h1>
+                <p class="text-slate-400 text-sm mb-4">Realistic quality-measure patterns. Load any into the translator.</p>
+                <div id="examples-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+            </section>
+
+            <!-- ===================== LEARN ===================== -->
+            <section id="section-learn" class="section">
+                <h1 class="text-2xl font-semibold tracking-tight mb-1">Lessons</h1>
+                <p class="text-slate-400 text-sm mb-4">Foundations for reading HEDIS / dQM logic.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div class="lg:col-span-5 bg-slate-900 border border-slate-700 rounded-3xl p-2"><div id="lessons-list" class="space-y-1"></div></div>
+                    <div class="lg:col-span-7 bg-slate-900 border border-slate-700 rounded-3xl p-6" id="lesson-content">
+                        <div class="text-center py-12 text-slate-400">Select a lesson to begin.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================== REFERENCE ===================== -->
+            <section id="section-reference" class="section">
+                <h1 class="text-2xl font-semibold tracking-tight mb-4">Quick Reference</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                        <div class="flex justify-between mb-3">
+                            <div class="font-semibold">Glossary</div>
+                            <input id="glossary-search" onkeyup="renderGlossary()" placeholder="Filter…" class="text-xs bg-slate-950 border border-slate-700 rounded-2xl px-3 py-1 w-40 outline-none">
+                        </div>
+                        <div id="glossary-list" class="max-h-[420px] overflow-auto pr-2 text-sm space-y-3"></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                        <div class="font-semibold mb-3">Common patterns</div>
+                        <div id="patterns-list" class="space-y-3 text-sm"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================== SIMULATOR ===================== -->
+            <section id="section-simulator" class="section">
+                <h1 class="text-2xl font-semibold tracking-tight mb-1">Guided Patient Simulator</h1>
+                <div class="mb-4 p-3 bg-amber-900/20 border border-amber-700/40 rounded-2xl text-amber-200 text-sm">
+                    This simulator demonstrates one fixed logic pattern for learning. It does <strong>not</strong> execute the CQL you paste in the translator.
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                        <div class="text-xs font-semibold mb-2 text-teal-400">DEMONSTRATED PATTERN</div>
+                        <pre class="font-mono text-xs bg-slate-950 p-4 rounded-2xl whitespace-pre-wrap">define "In Population":
+  AgeInYearsAt(start of MeasurementPeriod) >= 67
+  and Patient.gender = 'female'
+  and exists ([Condition: "Fragility Fracture"] F
+    where F.onset during MeasurementPeriod)</pre>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                        <div class="text-xs font-semibold mb-3 text-emerald-400">SIMULATED PATIENT</div>
+                        <label class="text-xs text-slate-400">Age / Gender</label>
+                        <div class="flex gap-x-2 mt-1 mb-4">
+                            <input id="sim-age" type="number" value="72" class="bg-slate-950 border border-slate-700 w-20 px-3 py-1.5 rounded-2xl text-sm">
+                            <select id="sim-gender" class="bg-slate-950 border border-slate-700 flex-1 px-3 py-1.5 rounded-2xl text-sm">
+                                <option value="female">Female</option><option value="male">Male</option>
+                            </select>
+                        </div>
+                        <label class="text-xs text-slate-400">Fragility fracture in period?</label>
+                        <div class="flex gap-x-2 mt-1">
+                            <button onclick="setSimFracture(true,this)" class="sim-frac flex-1 py-1.5 text-xs rounded-2xl border border-emerald-700 bg-emerald-900/30 text-emerald-300" data-on="true">Yes</button>
+                            <button onclick="setSimFracture(false,this)" class="sim-frac flex-1 py-1.5 text-xs rounded-2xl border border-slate-700">No</button>
+                        </div>
+                        <button onclick="runSimulator()" class="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-2xl text-sm font-semibold">Evaluate</button>
+                        <div id="sim-result" class="mt-4 p-4 bg-slate-950 rounded-2xl text-sm hidden"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="border-t border-slate-800 py-3 px-6 text-xs text-slate-500 max-w-screen-2xl mx-auto flex flex-wrap justify-between gap-2">
+        <div>CQL Clarity v1.0 · structural reader (no execution)</div>
+        <div class="flex gap-x-4">
+            <a href="https://cql.hl7.org/" target="_blank" rel="noopener" class="hover:text-slate-300">CQL spec</a>
+            <a href="https://github.com/cqframework/CQL-Formatting-and-Usage-Wiki/wiki/Cooking-with-CQL-Examples" target="_blank" rel="noopener" class="hover:text-slate-300">Cooking with CQL</a>
+        </div>
+    </footer>
+
+    <script src="analyzer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
