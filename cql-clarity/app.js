@@ -793,7 +793,7 @@ define "Denominator Exclusions":
     const q = ($('glossary-search') && $('glossary-search').value || '').toLowerCase();
     const list = GLOSSARY.filter(g => !q || (g.term + g.def).toLowerCase().includes(q));
     $('glossary-list').innerHTML = list.map(g =>
-      `<div class="flex gap-x-3 text-sm"><div class="font-semibold w-28 flex-shrink-0 text-teal-300">${esc(g.term)}</div><div class="text-slate-300">${esc(g.def)}</div></div>`
+      `<div class="flex gap-x-3 text-sm"><div class="font-semibold w-28 flex-shrink-0 text-teal-300 break-words leading-snug">${esc(g.term)}</div><div class="text-slate-300 min-w-0">${esc(g.def)}</div></div>`
     ).join('');
   }
   window.renderGlossary = renderGlossary;
