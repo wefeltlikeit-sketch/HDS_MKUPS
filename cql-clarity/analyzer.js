@@ -296,8 +296,14 @@
     'within', 'meets', 'starts', 'ends', 'includes', 'properly', 'same',
   ];
 
+  // Blank double-quoted identifiers so keyword scanning never picks up words
+  // that live inside a definition/value-set name (e.g. "BMD Test After …").
+  function blankQuoted(scanExpr) {
+    return scanExpr.replace(/"[^"]*"/g, m => ' '.repeat(m.length));
+  }
+
   function extractOperators(scanExpr) {
-    const lower = scanExpr.toLowerCase();
+    const lower = blankQuoted(scanExpr).toLowerCase();
     const found = [];
     for (const w of OPERATOR_WORDS) {
       if (new RegExp('\\b' + w + '\\b').test(lower)) found.push(w);
@@ -333,7 +339,8 @@
   ];
 
   function extractTiming(scanExpr) {
-    const lower = scanExpr.toLowerCase();
+    const cleaned = blankQuoted(scanExpr);
+    const lower = cleaned.toLowerCase();
     const phrases = [];
     for (const p of TIMING_PHRASES) {
       if (lower.indexOf(p) !== -1 && phrases.indexOf(p) === -1) {
@@ -351,7 +358,7 @@
     const offsets = [];
     const offRe = /([+-])\s*(\d+)\s+(year|month|week|day|hour|minute)s?/gi;
     let m;
-    while ((m = offRe.exec(scanExpr)) !== null) {
+    while ((m = offRe.exec(cleaned)) !== null) {
       offsets.push((m[1] === '-' ? 'minus ' : 'plus ') + m[2] + ' ' + m[3] + (m[2] === '1' ? '' : 's'));
     }
     return { phrases: result, offsets: offsets };
